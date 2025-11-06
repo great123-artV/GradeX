@@ -1,0 +1,72 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { UserProfile, getStoredData, saveUser, logout as logoutStorage } from '@/lib/storage';
+
+interface AuthContextType {
+  user: UserProfile | null;
+  login: (email: string, password: string) => boolean;
+  signup: (name: string, email: string, password: string, about?: string) => boolean;
+  logout: () => void;
+  updateProfile: (updates: Partial<UserProfile>) => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const data = getStoredData();
+    setUser(data.user);
+  }, []);
+
+  const signup = (name: string, email: string, password: string, about?: string) => {
+    const newUser: UserProfile = {
+      id: crypto.randomUUID(),
+      name,
+      email,
+      about,
+      currentLevel: '100',
+      currentSemester: '1',
+      createdAt: new Date().toISOString(),
+    };
+    
+    saveUser(newUser);
+    setUser(newUser);
+    return true;
+  };
+
+  const login = (email: string, password: string) => {
+    const data = getStoredData();
+    if (data.user && data.user.email === email) {
+      setUser(data.user);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    logoutStorage();
+    setUser(null);
+  };
+
+  const updateProfile = (updates: Partial<UserProfile>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    saveUser(updatedUser);
+    setUser(updatedUser);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, signup, logout, updateProfile }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}
