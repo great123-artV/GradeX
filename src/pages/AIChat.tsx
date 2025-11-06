@@ -157,11 +157,11 @@ export default function AIChat() {
     setInput('');
   };
 
-  const toggleVoiceInput = () => {
+  const toggleVoiceInput = async () => {
     if (!('webkitSpeechRecognition' in window)) {
       toast({
         title: 'Not Supported',
-        description: 'Voice input is not supported in your browser',
+        description: 'Voice input is not supported in your browser. Please use Chrome or Edge.',
         variant: 'destructive',
       });
       return;
@@ -171,22 +171,52 @@ export default function AIChat() {
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
-      const recognition = new (window as any).webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      try {
+        // Request microphone permission
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        const recognition = new (window as any).webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
 
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-      };
+        recognition.onstart = () => {
+          setIsListening(true);
+          toast({
+            title: 'Listening...',
+            description: 'Speak now',
+          });
+        };
 
-      recognition.onend = () => {
-        setIsListening(false);
-      };
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(transcript);
+        };
 
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsListening(true);
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          toast({
+            title: 'Error',
+            description: `Voice input error: ${event.error}. Please try again.`,
+            variant: 'destructive',
+          });
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (error) {
+        console.error('Microphone access error:', error);
+        toast({
+          title: 'Microphone Access Denied',
+          description: 'Please allow microphone access to use voice input.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 

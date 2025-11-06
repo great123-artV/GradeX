@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, BookOpen, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +18,8 @@ export default function Auth() {
     email: '',
     password: '',
     about: '',
+    currentLevel: '100',
+    currentSemester: '1',
   });
 
   const { login, signup } = useAuth();
@@ -39,7 +42,7 @@ export default function Auth() {
         toast({ title: 'Error', description: 'Please fill all required fields', variant: 'destructive' });
         return;
       }
-      signup(formData.name, formData.email, formData.password, formData.about);
+      signup(formData.name, formData.email, formData.password, formData.about, formData.currentLevel, formData.currentSemester);
       toast({ title: 'Welcome to Gradex!', description: 'Account created successfully.' });
       navigate('/dashboard');
     }
@@ -105,16 +108,62 @@ export default function Auth() {
           </div>
 
           {!isLogin && (
-            <div>
-              <Label htmlFor="about">About (Optional)</Label>
-              <Textarea
-                id="about"
-                value={formData.about}
-                onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-                placeholder="Tell us about yourself..."
-                rows={3}
-              />
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="level" className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-primary" />
+                    Level *
+                  </Label>
+                  <Select 
+                    value={formData.currentLevel} 
+                    onValueChange={(value) => setFormData({ ...formData, currentLevel: value })}
+                  >
+                    <SelectTrigger id="level">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">100 Level</SelectItem>
+                      <SelectItem value="200">200 Level</SelectItem>
+                      <SelectItem value="300">300 Level</SelectItem>
+                      <SelectItem value="400">400 Level</SelectItem>
+                      <SelectItem value="500">500 Level</SelectItem>
+                      <SelectItem value="600">600 Level</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="semester" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    Semester *
+                  </Label>
+                  <Select 
+                    value={formData.currentSemester} 
+                    onValueChange={(value) => setFormData({ ...formData, currentSemester: value })}
+                  >
+                    <SelectTrigger id="semester">
+                      <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1st Semester</SelectItem>
+                      <SelectItem value="2">2nd Semester</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="about">About (Optional)</Label>
+                <Textarea
+                  id="about"
+                  value={formData.about}
+                  onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+                  placeholder="Tell us about yourself..."
+                  rows={3}
+                />
+              </div>
+            </>
           )}
 
           <Button type="submit" className="w-full">

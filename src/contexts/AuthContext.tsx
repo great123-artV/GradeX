@@ -4,7 +4,7 @@ import { UserProfile, getStoredData, saveUser, logout as logoutStorage } from '@
 interface AuthContextType {
   user: UserProfile | null;
   login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string, about?: string) => boolean;
+  signup: (name: string, email: string, password: string, about?: string, level?: string, semester?: string) => boolean;
   logout: () => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
 }
@@ -19,14 +19,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   }, []);
 
-  const signup = (name: string, email: string, password: string, about?: string) => {
+  const signup = (name: string, email: string, password: string, about?: string, level: string = '100', semester: string = '1') => {
     const newUser: UserProfile = {
       id: crypto.randomUUID(),
       name,
       email,
       about,
-      currentLevel: '100',
-      currentSemester: '1',
+      currentLevel: level,
+      currentSemester: semester,
       createdAt: new Date().toISOString(),
     };
     
