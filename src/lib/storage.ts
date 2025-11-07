@@ -15,6 +15,7 @@ export interface AppData {
   courses: Course[];
   theme: 'light' | 'dark' | 'system';
   voiceEnabled: boolean;
+  tutorialCompleted: boolean;
 }
 
 const STORAGE_KEY = 'gradex_data';
@@ -27,6 +28,7 @@ export function getStoredData(): AppData {
       courses: [],
       theme: 'light',
       voiceEnabled: true,
+      tutorialCompleted: false,
     };
   }
   return JSON.parse(stored);
@@ -52,6 +54,10 @@ export function saveTheme(theme: 'light' | 'dark' | 'system') {
 
 export function saveVoiceEnabled(enabled: boolean) {
   saveData({ voiceEnabled: enabled });
+}
+
+export function saveTutorialCompleted(completed: boolean) {
+  saveData({ tutorialCompleted: completed });
 }
 
 export function logout() {

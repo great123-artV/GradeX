@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CourseProvider } from "@/contexts/CourseContext";
 import { isLoggedIn } from "@/lib/storage";
+import OnboardingTutorial from "@/components/OnboardingTutorial";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <OnboardingTutorial />
           </BrowserRouter>
         </CourseProvider>
       </AuthProvider>

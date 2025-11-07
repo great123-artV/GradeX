@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft, LogOut, Moon, Sun, Monitor } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStoredData, saveTheme, saveVoiceEnabled } from '@/lib/storage';
+import { getStoredData, saveTheme, saveVoiceEnabled, saveTutorialCompleted } from '@/lib/storage';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -215,6 +215,21 @@ export default function Settings() {
               <Switch checked={voiceEnabled} onCheckedChange={handleVoiceToggle} />
             </div>
           </div>
+        </Card>
+
+        {/* Tutorial */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Tutorial</h2>
+          <Button
+            variant="outline"
+            onClick={() => {
+              saveTutorialCompleted(false);
+              window.location.reload();
+            }}
+            className="w-full"
+          >
+            Show Tutorial Again
+          </Button>
         </Card>
 
         {/* Account Actions */}

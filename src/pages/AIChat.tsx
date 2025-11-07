@@ -54,13 +54,27 @@ export default function AIChat() {
   const generateResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
 
+    // Identity queries - PRIORITY
+    if (lowerInput.includes('your name') || lowerInput.includes('what is your name') || lowerInput.includes("what's your name")) {
+      return 'My name is CGPA Agent. I was created by NoskyTech to help students like you achieve academic excellence!';
+    }
+
+    if (lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created you')) {
+      return 'I\'m CGPA Agent, created by NoskyTech to help students achieve academic excellence. I track your progress, offer guidance, and remind you that every mark counts!';
+    }
+
+    // Greetings
+    if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) {
+      return `Hello ${user?.name}! How can I help you with your academic journey today?`;
+    }
+
     // Grading system queries
-    if (lowerInput.includes('grading') || lowerInput.includes('grade scale')) {
+    if (lowerInput.includes('grading') || lowerInput.includes('grade scale') || lowerInput.includes('grading system')) {
       return 'We use the UNN 5.0 grading system: A (70-100) = 5.0, B (60-69) = 4.0, C (50-59) = 3.0, D (45-49) = 2.0, E (40-44) = 1.0, F (0-39) = 0.0. Remember, 40 is a pass, anything below is a fail.';
     }
 
     // CGPA queries
-    if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa')) {
+    if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa') || lowerInput.includes('what is my cgpa')) {
       if (cgpa === 0) {
         return 'You haven\'t added any courses yet. Start by adding your course grades to calculate your CGPA!';
       }
@@ -78,7 +92,7 @@ export default function AIChat() {
     }
 
     // Carryover queries
-    if (lowerInput.includes('carryover') || lowerInput.includes('carry over') || lowerInput.includes('fail')) {
+    if (lowerInput.includes('carryover') || lowerInput.includes('carry over') || lowerInput.includes('failed course')) {
       if (carryovers.length === 0) {
         return 'Great news! You have no carry-over courses. Keep maintaining this excellent record!';
       }
@@ -86,7 +100,7 @@ export default function AIChat() {
     }
 
     // Course count
-    if (lowerInput.includes('how many courses') || lowerInput.includes('course count')) {
+    if (lowerInput.includes('how many courses') || lowerInput.includes('course count') || lowerInput.includes('number of courses')) {
       return `You currently have ${currentCourses.length} course${currentCourses.length !== 1 ? 's' : ''} registered for this semester.`;
     }
 
@@ -103,20 +117,20 @@ export default function AIChat() {
     }
 
     // Improvement tips
-    if (lowerInput.includes('improve') || lowerInput.includes('better') || lowerInput.includes('tips')) {
+    if (lowerInput.includes('improve') || lowerInput.includes('better') || lowerInput.includes('tips') || lowerInput.includes('advice')) {
       return 'Here are some tips to improve your CGPA: 1) Never miss assignments and CAs - they can add crucial marks. 2) Study consistently, not just before exams. 3) Form study groups with dedicated peers. 4) Seek help early when struggling with a course. 5) Remember, 1 mark counts!';
     }
 
-    // About the agent
-    if (lowerInput.includes('who are you') || lowerInput.includes('what are you')) {
-      return 'I\'m CGPA Agent, created by NoskyTech to help students like you achieve academic excellence. I\'m here to track your progress, offer guidance, and remind you that every mark counts!';
+    // Thank you
+    if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
+      return 'You\'re welcome! I\'m here to help you succeed. Keep pushing towards your academic goals!';
     }
 
     // Default responses
     const defaults = [
-      'That\'s an interesting question! As your CGPA Agent, I\'m here to help with your academic journey. Ask me about your CGPA, courses, or tips to improve!',
-      'I\'m here to support your academic success! Feel free to ask about your grades, course performance, or study strategies.',
-      'Great question! Remember, I can help you track your CGPA, understand your performance, and suggest ways to improve. What would you like to know?',
+      'I\'m not sure I understand that question. Try asking me about your CGPA, courses, grading system, or study tips!',
+      'Could you rephrase that? I can help with your grades, CGPA tracking, carry-overs, or academic advice.',
+      'I didn\'t quite get that. Ask me about your academic performance, study strategies, or course information!',
     ];
     return defaults[Math.floor(Math.random() * defaults.length)];
   };
@@ -170,53 +184,71 @@ export default function AIChat() {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
-    } else {
-      try {
-        // Request microphone permission
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        const recognition = new (window as any).webkitSpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+      return;
+    }
 
-        recognition.onstart = () => {
-          setIsListening(true);
-          toast({
-            title: 'Listening...',
-            description: 'Speak now',
-          });
-        };
+    try {
+      // Request microphone permission first
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // Stop the stream after permission is granted
+      
+      const recognition = new (window as any).webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
 
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setInput(transcript);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-          toast({
-            title: 'Error',
-            description: `Voice input error: ${event.error}. Please try again.`,
-            variant: 'destructive',
-          });
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognition.start();
-        recognitionRef.current = recognition;
-      } catch (error) {
-        console.error('Microphone access error:', error);
+      recognition.onstart = () => {
+        setIsListening(true);
         toast({
-          title: 'Microphone Access Denied',
-          description: 'Please allow microphone access to use voice input.',
+          title: 'Listening...',
+          description: 'Speak now',
+        });
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        toast({
+          title: 'Heard you!',
+          description: `"${transcript}"`,
+        });
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        
+        let errorMsg = 'Voice input error. Please try again.';
+        if (event.error === 'no-speech') {
+          errorMsg = 'No speech detected. Please try again.';
+        } else if (event.error === 'audio-capture') {
+          errorMsg = 'Microphone not detected. Check your device.';
+        } else if (event.error === 'not-allowed') {
+          errorMsg = 'Microphone access denied. Enable it in browser settings.';
+        }
+        
+        toast({
+          title: 'Voice Error',
+          description: errorMsg,
           variant: 'destructive',
         });
-      }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (error) {
+      console.error('Microphone access error:', error);
+      setIsListening(false);
+      toast({
+        title: 'Microphone Access Required',
+        description: 'Please enable microphone access in your browser settings to use voice input.',
+        variant: 'destructive',
+      });
     }
   };
 
