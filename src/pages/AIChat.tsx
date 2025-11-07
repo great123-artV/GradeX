@@ -38,7 +38,7 @@ export default function AIChat() {
       const welcomeMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `Hello ${user?.name}! I'm your CGPA Agent, created by NoskyTech to help you achieve academic excellence. Your current CGPA is ${cgpa.toFixed(2)}. How can I assist you today?`,
+        content: `Hello ${user?.name}! I'm your CGPA Agent, built by NoskyTech specifically to help UNN students achieve academic excellence. Your current CGPA is ${cgpa.toFixed(2)}. I'm here to guide you, motivate you, and help you succeed. How can I assist you today?`,
         timestamp: new Date(),
       };
       setMessages([welcomeMsg]);
@@ -56,16 +56,45 @@ export default function AIChat() {
 
     // Identity queries - PRIORITY
     if (lowerInput.includes('your name') || lowerInput.includes('what is your name') || lowerInput.includes("what's your name")) {
-      return 'My name is CGPA Agent. I was created by NoskyTech to help students like you achieve academic excellence!';
+      return `My name is CGPA Agent! I was created by NoskyTech specifically to help UNN students like you achieve academic excellence. I'm here to support you every step of the way!`;
     }
 
     if (lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created you')) {
-      return 'I\'m CGPA Agent, created by NoskyTech to help students achieve academic excellence. I track your progress, offer guidance, and remind you that every mark counts!';
+      return `I'm CGPA Agent, your friendly academic companion built by NoskyTech! I was designed specifically for UNN students to help you track your progress, stay motivated, and achieve excellence. I learn from your academic patterns and adapt my advice to help you succeed. Remember, every mark counts!`;
     }
 
     // Greetings
     if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) {
-      return `Hello ${user?.name}! How can I help you with your academic journey today?`;
+      return `Hello ${user?.name}! 😊 It's great to see you! How can I help you with your academic journey today?`;
+    }
+
+    // Time queries
+    if (lowerInput.includes('time') || lowerInput.includes('what time') || lowerInput.includes('current time')) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      return `The current time is ${timeStr} on ${dateStr}. Stay on top of your study schedule, ${user?.name}!`;
+    }
+
+    // UNN-specific queries
+    if (lowerInput.includes('unn') || lowerInput.includes('university of nigeria') || lowerInput.includes('nsukka')) {
+      if (lowerInput.includes('about') || lowerInput.includes('what is')) {
+        return 'The University of Nigeria, Nsukka (UNN) is a prestigious federal university established in 1960. It\'s the first indigenous university in Nigeria, known for academic excellence and innovation. As a UNN student, you\'re part of a proud legacy!';
+      }
+      if (lowerInput.includes('grading') || lowerInput.includes('system')) {
+        return 'UNN uses the 5.0 grading system: A (70-100) = 5.0, B (60-69) = 4.0, C (50-59) = 3.0, D (45-49) = 2.0, E (40-44) = 1.0, F (0-39) = 0.0. A score of 40 is a pass, anything below is a fail. This is the standard I use to calculate your CGPA!';
+      }
+      return `UNN is a world-class institution, and you're privileged to study here! I was built specifically to help UNN students like you excel academically. What would you like to know about your academic progress?`;
+    }
+
+    // Education queries
+    if (lowerInput.includes('study tip') || lowerInput.includes('how to study') || lowerInput.includes('study better')) {
+      return `Here are proven study tips for UNN students: 1) Start assignments early - don't wait until the last minute. 2) Attend all lectures and take detailed notes. 3) Form study groups with serious peers. 4) Practice past questions regularly. 5) Take breaks to avoid burnout. 6) Stay consistent - small daily efforts lead to big results. Remember, ${user?.name}, every mark counts!`;
+    }
+
+    // Academic calendar
+    if (lowerInput.includes('semester') && (lowerInput.includes('when') || lowerInput.includes('start') || lowerInput.includes('end'))) {
+      return `For the most accurate and up-to-date UNN academic calendar information, please check the official UNN website or your department's notice board. Generally, UNN runs two semesters per academic year. Stay informed and plan your studies accordingly!`;
     }
 
     // Grading system queries
@@ -76,17 +105,17 @@ export default function AIChat() {
     // CGPA queries
     if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa') || lowerInput.includes('what is my cgpa')) {
       if (cgpa === 0) {
-        return 'You haven\'t added any courses yet. Start by adding your course grades to calculate your CGPA!';
+        return `Hey ${user?.name}, you haven't added any courses yet. Let's get started! Add your course grades so I can help you track your progress and reach your academic goals.`;
       }
       let response = `Your current CGPA is ${cgpa.toFixed(2)} out of 5.0. `;
       if (cgpa >= 4.5) {
-        response += 'Outstanding! You\'re in the first-class zone. Keep up this excellent work!';
+        response += `Outstanding, ${user?.name}! 🌟 You're in the first-class zone! Keep up this excellent work - UNN will be proud of you!`;
       } else if (cgpa >= 3.5) {
-        response += 'Great work! You\'re performing well. Every mark counts towards your goals.';
+        response += `Great work, ${user?.name}! You're performing well. Every mark counts towards your goals. Let's keep this momentum going!`;
       } else if (cgpa >= 2.5) {
-        response += 'You\'re making progress. Focus on your CAs and assignments to boost your grades.';
+        response += `You're making progress, ${user?.name}. Focus on your CAs and assignments - they can significantly boost your grades. I believe in you!`;
       } else {
-        response += 'Remember, 1 mark counts! Let\'s work together to improve your performance.';
+        response += `Don't worry, ${user?.name}! Remember, 1 mark counts! Let's work together to improve your performance. I'm here to help you succeed.`;
       }
       return response;
     }
@@ -118,19 +147,24 @@ export default function AIChat() {
 
     // Improvement tips
     if (lowerInput.includes('improve') || lowerInput.includes('better') || lowerInput.includes('tips') || lowerInput.includes('advice')) {
-      return 'Here are some tips to improve your CGPA: 1) Never miss assignments and CAs - they can add crucial marks. 2) Study consistently, not just before exams. 3) Form study groups with dedicated peers. 4) Seek help early when struggling with a course. 5) Remember, 1 mark counts!';
+      return `Here are personalized tips for you, ${user?.name}: 1) Never miss assignments and CAs - at UNN, they can add crucial marks to your final grade. 2) Study consistently, not just before exams. Small daily sessions are more effective. 3) Form study groups with dedicated peers. 4) Attend consultation hours with lecturers when struggling. 5) Practice past questions - they often repeat patterns. 6) Stay healthy - eat well, sleep enough, and exercise. Remember, 1 mark counts! You've got this! 💪`;
     }
 
     // Thank you
     if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
-      return 'You\'re welcome! I\'m here to help you succeed. Keep pushing towards your academic goals!';
+      return `You're very welcome, ${user?.name}! 😊 I'm always here to help you succeed. Keep pushing towards your academic goals - you're doing great!`;
+    }
+
+    // Learning patterns (simulated personalization)
+    if (carryovers.length > 0 && (lowerInput.includes('how') || lowerInput.includes('what'))) {
+      return `I notice you have ${carryovers.length} carry-over course${carryovers.length > 1 ? 's' : ''}. Let's focus on clearing ${carryovers.length > 1 ? 'those' : 'that'} first. Dedicate extra time to ${carryovers.length > 1 ? 'these courses' : 'this course'}, attend all classes, and do every assignment. You can turn this around, ${user?.name}!`;
     }
 
     // Default responses
     const defaults = [
-      'I\'m not sure I understand that question. Try asking me about your CGPA, courses, grading system, or study tips!',
-      'Could you rephrase that? I can help with your grades, CGPA tracking, carry-overs, or academic advice.',
-      'I didn\'t quite get that. Ask me about your academic performance, study strategies, or course information!',
+      `I'm not sure I understand that question, ${user?.name}. Try asking me about your CGPA, courses, UNN grading system, study tips, or time management!`,
+      `Could you rephrase that? I can help with your grades, CGPA tracking, carry-overs, UNN information, or academic advice. I'm here for you!`,
+      `I didn't quite get that, ${user?.name}. Ask me about your academic performance, study strategies, UNN policies, or course information!`,
     ];
     return defaults[Math.floor(Math.random() * defaults.length)];
   };
@@ -209,6 +243,32 @@ export default function AIChat() {
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
+        
+        // Auto-send the message after voice input
+        setTimeout(() => {
+          const userMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'user',
+            content: transcript,
+            timestamp: new Date(),
+          };
+
+          const assistantResponse: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: generateResponse(transcript),
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, userMessage, assistantResponse]);
+          
+          if (voiceEnabled) {
+            speakMessage(assistantResponse.content);
+          }
+
+          setInput('');
+        }, 500);
+        
         toast({
           title: 'Heard you!',
           description: `"${transcript}"`,
