@@ -232,6 +232,25 @@ export default function Settings() {
           </Button>
         </Card>
 
+        {/* Privacy Policy */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Privacy Policy</h2>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              <strong className="text-foreground">Data Storage:</strong> All your data (grades, courses, profile) is stored locally on your device. We do not collect or transmit your personal information to any servers.
+            </p>
+            <p>
+              <strong className="text-foreground">AI Chat:</strong> The AI assistant processes your questions locally. No chat history is stored permanently or sent to external servers.
+            </p>
+            <p>
+              <strong className="text-foreground">Your Privacy:</strong> Your academic records and personal information remain completely private and under your control. You can delete all data by clearing your browser storage.
+            </p>
+            <p>
+              <strong className="text-foreground">No Third Parties:</strong> We do not share your data with any third parties. This app is designed by NoskyTech specifically for UNN students with privacy in mind.
+            </p>
+          </div>
+        </Card>
+
         {/* Account Actions */}
         <Card className="p-6">
           <Button variant="destructive" onClick={handleLogout} className="w-full">

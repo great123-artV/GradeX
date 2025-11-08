@@ -56,174 +56,177 @@ export default function AIChat() {
   const generateResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
 
-    // Identity queries - PRIORITY
-    if (lowerInput.includes('your name') || lowerInput.includes('what is your name') || lowerInput.includes("what's your name")) {
-      return `My name is CGPA Agent! I was created by NoskyTech specifically to help UNN students like you achieve academic excellence. I can help with your grades, solve math problems, explain concepts, and support your learning journey!`;
-    }
-
-    if (lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created you')) {
-      return `I'm CGPA Agent, your intelligent academic companion built by NoskyTech! I was designed for UNN students to help you track grades, solve math problems, explain concepts, and achieve excellence. I can handle everything from calculus to programming logic. What would you like to learn today, ${user?.name}?`;
+    // Identity
+    if (lowerInput.includes('your name') || lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created')) {
+      return `I'm CGPA Agent, built by NoskyTech for UNN students. I help with grades, solve problems, and explain concepts clearly. What do you need help with?`;
     }
 
     // Greetings
     if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) {
-      return `Hello ${user?.name}! 😊 Great to see you! I can help with your CGPA, solve math problems, explain topics, or answer questions. What's on your mind?`;
+      return `Hi ${user?.name}! How can I help you today?`;
     }
 
-    // Math problem detection - expanded
-    const mathKeywords = ['solve', 'calculate', 'equation', 'derivative', 'integral', 'algebra', 'geometry', 'trigonometry', 'calculus', 'statistics', 'probability', 'matrix', 'vector', 'differential', 'limit', 'sum', 'product', 'factorial', 'logarithm', 'exponential'];
-    const hasMath = mathKeywords.some(keyword => lowerInput.includes(keyword)) || /[\d+\-*/^()=]/.test(userInput);
-    
-    if (hasMath) {
-      // Check for specific math operations
-      if (lowerInput.includes('derivative') || lowerInput.includes('differentiate')) {
-        return `I can help with derivatives! For basic rules: d/dx(x^n) = nx^(n-1), d/dx(sin x) = cos x, d/dx(e^x) = e^x, d/dx(ln x) = 1/x. Chain rule: d/dx(f(g(x))) = f'(g(x))·g'(x). Product rule: d/dx(uv) = u'v + uv'. Share your specific problem and I'll guide you through it, ${user?.name}!`;
-      }
-      if (lowerInput.includes('integral') || lowerInput.includes('integrate')) {
-        return `Integration is anti-differentiation! Basic rules: ∫x^n dx = x^(n+1)/(n+1) + C, ∫e^x dx = e^x + C, ∫(1/x) dx = ln|x| + C, ∫sin x dx = -cos x + C, ∫cos x dx = sin x + C. For definite integrals, apply limits after integration. What specific integral do you need help with?`;
-      }
-      if (lowerInput.includes('matrix') || lowerInput.includes('matrices')) {
-        return `Matrices are powerful! Key operations: Addition (add corresponding elements), Multiplication (row×column), Transpose (flip rows/columns), Determinant (ad-bc for 2×2), Inverse (A^(-1) where AA^(-1) = I). Applications include solving linear equations, transformations, and engineering problems. Need help with a specific matrix operation?`;
-      }
-      if (lowerInput.includes('probability') || lowerInput.includes('statistics')) {
-        return `Statistics and probability are essential! Key concepts: Mean (average), Median (middle value), Mode (most frequent), Standard deviation (spread), Probability = Favorable outcomes / Total outcomes. Combinations: nCr = n!/(r!(n-r)!), Permutations: nPr = n!/(n-r)!. What statistical problem are you working on?`;
-      }
-      return `I see a math problem! Break it down step by step: 1) Identify what's given and what's unknown. 2) Choose the right formula or method. 3) Solve systematically. 4) Check your answer. Share more details and I'll help you work through it, ${user?.name}!`;
+    // Math - Derivatives
+    if (lowerInput.includes('derivative') || lowerInput.includes('differentiate')) {
+      return `Let me explain derivatives step by step. The derivative shows the rate of change. Basic rules: d/dx(x^n) equals n times x^(n-1). For example, d/dx(x^3) equals 3x^2. The derivative of sine x is cosine x. The derivative of e^x stays as e^x. Tell me your specific problem and I'll walk you through it.`;
     }
 
-    // Programming and logic
+    // Math - Integrals
+    if (lowerInput.includes('integral') || lowerInput.includes('integrate')) {
+      return `Integration is the reverse of differentiation. Here are the key rules. The integral of x^n is x^(n+1) divided by (n+1), plus C. The integral of e^x is e^x plus C. The integral of 1/x is ln of absolute x, plus C. Share your specific problem.`;
+    }
+
+    // Math - Matrices
+    if (lowerInput.includes('matrix') || lowerInput.includes('matrices')) {
+      return `Matrices are rectangular arrays of numbers. To add matrices, add corresponding elements. To multiply, use row times column. The determinant of a 2×2 matrix with elements a, b, c, d is ad minus bc. What matrix operation do you need help with?`;
+    }
+
+    // Math - Probability/Statistics
+    if (lowerInput.includes('probability') || lowerInput.includes('statistics')) {
+      return `Let's break down statistics. The mean is the average of all numbers. The median is the middle value. Probability equals favorable outcomes divided by total outcomes. For combinations, use n factorial divided by r factorial times (n minus r) factorial. What's your specific question?`;
+    }
+
+    // General Math
+    const mathKeywords = ['solve', 'calculate', 'equation', 'algebra', 'geometry', 'trigonometry', 'calculus'];
+    if (mathKeywords.some(k => lowerInput.includes(k)) || /[\d+\-*/^()=]/.test(userInput)) {
+      return `I can solve this with you. First, identify what you know and what you need to find. Second, choose the right formula. Third, solve step by step. Fourth, check your answer. Share the details of your problem.`;
+    }
+
+    // Programming
     if (lowerInput.includes('algorithm') || lowerInput.includes('programming') || lowerInput.includes('code') || lowerInput.includes('logic')) {
-      return `I can help with programming logic! Key concepts: Variables (store data), Loops (repeat actions - for/while), Conditionals (if/else decisions), Functions (reusable code blocks), Arrays (data collections), Recursion (function calling itself). Algorithm design: 1) Understand the problem, 2) Break into smaller steps, 3) Write pseudocode, 4) Test edge cases. What specific programming topic do you need help with?`;
+      return `Let me explain programming concepts clearly. Variables store data. Loops repeat actions using for or while. Conditionals make decisions using if and else. Functions are reusable blocks of code. Arrays store collections of data. What specific programming topic do you need explained?`;
     }
 
-    // Physics concepts
+    // Physics
     if (lowerInput.includes('physics') || lowerInput.includes('force') || lowerInput.includes('motion') || lowerInput.includes('energy')) {
-      return `Physics is fascinating! Core principles: Newton's Laws (F=ma, action-reaction), Energy (KE=½mv², PE=mgh), Work (W=Fd), Power (P=W/t), Momentum (p=mv), Waves (v=fλ), Electricity (V=IR, P=VI). For problem-solving: 1) List knowns and unknowns, 2) Draw diagrams, 3) Choose equations, 4) Solve and check units. What physics concept can I explain?`;
+      return `Physics is about understanding how things work. Force equals mass times acceleration. Kinetic energy equals one half times mass times velocity squared. Potential energy equals mass times gravity times height. Work equals force times distance. What physics concept should I explain?`;
     }
 
-    // Chemistry concepts
+    // Chemistry
     if (lowerInput.includes('chemistry') || lowerInput.includes('chemical') || lowerInput.includes('reaction') || lowerInput.includes('molecule')) {
-      return `Chemistry is the study of matter! Key topics: Atomic structure (protons, neutrons, electrons), Periodic table trends, Chemical bonding (ionic, covalent), Stoichiometry (mole calculations: n=m/M), Redox reactions (oxidation-reduction), Acids/Bases (pH scale), Thermodynamics (ΔH, ΔG, ΔS). Balancing equations: Ensure equal atoms on both sides. What chemistry topic do you need help with?`;
+      return `Chemistry studies matter and reactions. Atoms have protons, neutrons, and electrons. Chemical bonds can be ionic or covalent. To balance equations, make sure atoms are equal on both sides. The number of moles equals mass divided by molar mass. What chemistry topic do you need help with?`;
     }
 
-    // Biology concepts
+    // Biology
     if (lowerInput.includes('biology') || lowerInput.includes('cell') || lowerInput.includes('genetics') || lowerInput.includes('ecology')) {
-      return `Biology is the science of life! Major areas: Cell biology (organelles, mitosis/meiosis), Genetics (DNA, inheritance, Punnett squares), Evolution (natural selection, adaptation), Ecology (ecosystems, food chains), Physiology (body systems), Biochemistry (proteins, carbs, lipids). Study tip: Use diagrams and flashcards for memorization. What biological concept can I explain?`;
+      return `Biology is the study of living things. Cells have organelles like nucleus, mitochondria, and ribosomes. DNA carries genetic information. Mitosis creates identical cells. Meiosis creates sex cells. Ecosystems have producers, consumers, and decomposers. What biological concept should I explain?`;
     }
 
-    // General explanation requests
+    // Explanation requests
     if (lowerInput.includes('explain') || lowerInput.includes('what is') || lowerInput.includes('how does') || lowerInput.includes('tell me about')) {
-      return `I'd love to explain that! To give you the best answer, please be specific about the topic. I can explain concepts in: Mathematics (calculus, algebra, statistics), Sciences (physics, chemistry, biology), Programming (algorithms, data structures), Engineering principles, and more. What specific topic do you want me to explain, ${user?.name}?`;
+      return `I can explain that clearly. Please tell me the specific topic you want to understand. I can help with math, science, programming, or study techniques.`;
     }
 
-    // Problem-solving strategies
+    // Problem solving
     if (lowerInput.includes('problem') || lowerInput.includes('stuck') || lowerInput.includes('difficult') || lowerInput.includes('hard')) {
-      return `Problem-solving strategies for academic success: 1) Read carefully and underline key info. 2) Break complex problems into smaller parts. 3) Draw diagrams or visualize the problem. 4) Work backwards from what you want to find. 5) Try similar examples. 6) Don't panic - take a break if needed. 7) Verify your solution. I'm here to help you through any tough problem, ${user?.name}!`;
+      return `When stuck on a problem, try this. First, read carefully and highlight key information. Second, break it into smaller parts. Third, draw a diagram if possible. Fourth, try working backwards. Take a short break if needed. I'm here to help you.`;
     }
 
-    // Note-taking and study methods
+    // Study methods
     if (lowerInput.includes('notes') || lowerInput.includes('note-taking') || lowerInput.includes('study method')) {
-      return `Effective note-taking techniques: 1) Cornell Method (divide page: notes, cues, summary). 2) Mind mapping (visual connections). 3) Outline method (hierarchical structure). 4) SQ3R (Survey, Question, Read, Recite, Review). 5) Active recall - test yourself regularly. 6) Spaced repetition - review at intervals. 7) Teach others to solidify understanding. Your notes are your academic superpower, ${user?.name}!`;
+      return `Good note-taking is essential. Use the Cornell Method: divide your page into notes, cues, and summary sections. Review your notes within 24 hours. Test yourself regularly using active recall. Teach the material to someone else. This helps you remember better.`;
     }
 
-    // Time queries
+    // Time
     if (lowerInput.includes('time') || lowerInput.includes('what time') || lowerInput.includes('current time')) {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      return `The current time is ${timeStr} on ${dateStr}. Make every moment count in your studies, ${user?.name}!`;
+      return `The current time is ${timeStr}.`;
     }
 
-    // UNN-specific queries
+    // UNN
     if (lowerInput.includes('unn') || lowerInput.includes('university of nigeria') || lowerInput.includes('nsukka')) {
-      if (lowerInput.includes('about') || lowerInput.includes('what is')) {
-        return 'The University of Nigeria, Nsukka (UNN) was established in 1960 as Nigeria\'s first indigenous university. It\'s known for academic excellence, groundbreaking research, and producing distinguished alumni. UNN has multiple campuses and offers diverse programs. As a UNN student, you\'re part of a proud tradition of excellence!';
-      }
       if (lowerInput.includes('grading') || lowerInput.includes('system')) {
-        return 'UNN uses the 5.0 grading system: A (70-100) = 5.0, B (60-69) = 4.0, C (50-59) = 3.0, D (45-49) = 2.0, E (40-44) = 1.0, F (0-39) = 0.0. A score of 40 is a pass. This system rewards excellence and I use it to calculate your CGPA accurately!';
+        return 'UNN uses a 5-point grading system. A grade equals 70-100 which is 5 points. B equals 60-69 which is 4 points. C equals 50-59 which is 3 points. D equals 45-49 which is 2 points. E equals 40-44 which is 1 point. F equals 0-39 which is 0 points. You need at least 40 to pass.';
       }
-      return `UNN is a world-class institution! I was built specifically to help UNN students like you excel academically. Whether you need help with grades, concepts, or problem-solving, I'm here for you. What can I help you with today?`;
+      return `UNN was established in 1960 as Nigeria's first indigenous university. It's known for academic excellence and producing great leaders. I'm here to help you succeed as a UNN student.`;
     }
 
     // Study tips
     if (lowerInput.includes('study tip') || lowerInput.includes('how to study') || lowerInput.includes('study better')) {
-      return `Proven study strategies for UNN success: 1) Attend every lecture - first-hand learning is irreplaceable. 2) Review notes within 24 hours. 3) Practice past questions extensively. 4) Join/form study groups with serious students. 5) Use the Pomodoro Technique (25min study, 5min break). 6) Prioritize CA and assignments - they boost your final grade significantly. 7) Sleep well before exams. Consistency beats cramming, ${user?.name}!`;
+      return `Here are proven study strategies. First, attend every lecture. Second, review notes within 24 hours. Third, practice past questions. Fourth, join a serious study group. Fifth, use the Pomodoro Technique: study for 25 minutes, then rest for 5 minutes. Sixth, complete all CAs and assignments. Consistency beats cramming.`;
     }
 
-    // CGPA queries
+    // CGPA
     if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa') || lowerInput.includes('what is my cgpa')) {
       if (cgpa === 0) {
-        return `Hey ${user?.name}, you haven't added any courses yet. Let's get started! Add your course grades so I can track your progress and provide personalized academic guidance.`;
+        return `You haven't added any courses yet. Go to the Courses page to add your grades so I can track your progress.`;
       }
-      let response = `Your current CGPA is ${cgpa.toFixed(2)} out of 5.0. `;
+      let response = `Your CGPA is ${cgpa.toFixed(2)} out of 5.0. `;
       if (cgpa >= 4.5) {
-        response += `Outstanding, ${user?.name}! 🌟 First-class honors territory! Your hard work is paying off. Keep this momentum!`;
+        response += `Excellent work! You're in first-class territory. Keep it up.`;
       } else if (cgpa >= 3.5) {
-        response += `Great work, ${user?.name}! You're performing well. With consistent effort, even higher grades are within reach!`;
+        response += `Good job. You're doing well. Keep working hard.`;
       } else if (cgpa >= 2.5) {
-        response += `You're progressing, ${user?.name}. Focus on CAs and assignments - they can significantly boost your grades. I believe in you!`;
+        response += `You're making progress. Focus on your CAs and assignments to boost your grades.`;
       } else {
-        response += `Don't worry, ${user?.name}! Every mark counts! Let's work together to improve. I'm here to help with concepts, study strategies, and motivation!`;
+        response += `Let's work on improving this together. Every mark counts.`;
       }
       return response;
     }
 
-    // Carryover queries
+    // Carryovers
     if (lowerInput.includes('carryover') || lowerInput.includes('carry over') || lowerInput.includes('failed course')) {
       if (carryovers.length === 0) {
-        return 'Excellent! No carry-over courses. Keep this perfect record going, ${user?.name}!';
+        return `Great! You have no carry-over courses.`;
       }
-      return `You have ${carryovers.length} carry-over course${carryovers.length > 1 ? 's' : ''}. Strategy: 1) Identify why you struggled initially. 2) Get all past questions. 3) Form a study group. 4) Attend all classes this time. 5) Complete every assignment. You can absolutely turn this around, ${user?.name}!`;
-    }
-
-    // Course count
-    if (lowerInput.includes('how many courses') || lowerInput.includes('course count') || lowerInput.includes('number of courses')) {
-      return `You have ${currentCourses.length} course${currentCourses.length !== 1 ? 's' : ''} this semester. Managing multiple courses requires good time management and prioritization. Need study strategies?`;
+      return `You have ${carryovers.length} carry-over course${carryovers.length > 1 ? 's' : ''}. Here's what to do. First, understand why you struggled before. Second, get past questions. Third, attend all classes this time. Fourth, complete every assignment. You can clear these courses.`;
     }
 
     // Motivation
     if (lowerInput.includes('motivate') || lowerInput.includes('encourage') || lowerInput.includes('inspiration')) {
       const motivations = [
-        'Every mark counts! The difference between a B and an A could be just one assignment. Give it your all!',
-        'Your potential is unlimited, ${user?.name}. Academic excellence is a journey, not a destination. Keep growing!',
-        'Remember why you started. Your dreams are valid and achievable. Stay focused and consistent!',
-        'Success in academics is 10% inspiration, 90% perspiration. Your hard work will pay off!',
-        'You\'re capable of more than you know. Every challenge is an opportunity to prove yourself. You\'ve got this!',
+        `Every mark counts. One assignment can change your grade from B to A. Give your best effort.`,
+        `You have great potential. Keep working hard and stay focused on your goals.`,
+        `Remember why you started university. Your dreams are achievable through consistent effort.`,
+        `Hard work pays off. Stay dedicated to your studies.`,
+        `You can do this. Every challenge makes you stronger.`,
       ];
       return motivations[Math.floor(Math.random() * motivations.length)];
     }
 
-    // Improvement tips
+    // Improvement
     if (lowerInput.includes('improve') || lowerInput.includes('better') || lowerInput.includes('tips') || lowerInput.includes('advice')) {
-      return `Personalized success plan for you, ${user?.name}: 1) Never skip CAs/assignments at UNN - they add crucial marks. 2) Study 2 hours daily rather than cramming. 3) Practice past questions repeatedly. 4) Seek help early when confused. 5) Form accountability partnerships. 6) Maintain good health - sleep, nutrition, exercise. 7) Stay positive and persistent. Excellence is a habit! 💪`;
+      return `Here's how to improve your grades. First, never skip CAs or assignments at UNN. They add crucial marks. Second, study 2 hours daily instead of cramming. Third, practice past questions repeatedly. Fourth, ask for help early when confused. Fifth, get enough sleep. Sixth, eat well and exercise. Excellence is built through daily habits.`;
     }
 
     // Thank you
     if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
-      return `You're very welcome, ${user?.name}! 😊 I'm always here to help - whether it's grades, concepts, or problem-solving. Keep striving for excellence!`;
+      return `You're welcome! I'm here whenever you need help.`;
     }
 
-    // Learning patterns (simulated personalization)
-    if (carryovers.length > 0 && (lowerInput.includes('how') || lowerInput.includes('help'))) {
-      return `I notice you have carry-over courses. Let's focus on clearing those! Strategy: 1) Dedicate extra time to these subjects. 2) Understand concepts, don't just memorize. 3) Do all assignments and attend every class. 4) Use office hours to ask lecturers questions. You can definitely overcome this, ${user?.name}!`;
-    }
-
-    // Default - more helpful
-    const defaults = [
-      `I can help with many things, ${user?.name}! Try asking me to: solve math problems, explain concepts (physics, chemistry, biology), help with programming logic, provide study tips, or track your CGPA. What would you like to explore?`,
-      `I'm your complete academic assistant! I can solve equations, explain topics, help with problem-solving, track grades, and motivate you. What specific help do you need today?`,
-      `Not quite sure what you need? I can: calculate derivatives/integrals, explain scientific concepts, solve logic problems, provide study strategies, or discuss your academic progress. Just ask, ${user?.name}!`,
-    ];
-    return defaults[Math.floor(Math.random() * defaults.length)];
+    // Default
+    return `I can help you with many things. I can solve math problems, explain science concepts, help with programming, track your CGPA, or provide study tips. What do you need help with?`;
   };
 
   const speakMessage = (text: string) => {
     if ('speechSynthesis' in window && voiceEnabled) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-      window.speechSynthesis.speak(utterance);
+      // Split text into sentences for better pacing
+      const sentences = text.split(/([.!?]+)/).filter(s => s.trim());
+      let currentIndex = 0;
+
+      const speakNextSentence = () => {
+        if (currentIndex >= sentences.length) return;
+
+        const sentence = sentences[currentIndex] + (sentences[currentIndex + 1] || '');
+        currentIndex += 2;
+
+        const utterance = new SpeechSynthesisUtterance(sentence.trim());
+        utterance.rate = 0.85; // Slower for clarity
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        // Add pause between sentences
+        utterance.onend = () => {
+          setTimeout(() => {
+            speakNextSentence();
+          }, 400); // 400ms pause between sentences
+        };
+
+        window.speechSynthesis.speak(utterance);
+      };
+
+      speakNextSentence();
     }
   };
 
