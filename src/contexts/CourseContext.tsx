@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { Course, calculateGPA, calculateCGPA, getCarryoverCourses } from '@/lib/grading';
 import { getStoredData, saveCourses } from '@/lib/storage';
 
@@ -15,7 +15,11 @@ interface CourseContextType {
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
-export function CourseProvider({ children }: { children: React.ReactNode }) {
+interface CourseProviderProps {
+  children: ReactNode;
+}
+
+export function CourseProvider({ children }: CourseProviderProps) {
   const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
