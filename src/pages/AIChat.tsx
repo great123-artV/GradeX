@@ -5,9 +5,11 @@ import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Send, Mic, MicOff, Sparkles } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Sparkles, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getStoredData } from '@/lib/storage';
+import { SavedResponses, saveResponse } from '@/components/SavedResponses';
+import { StudyTimer } from '@/components/StudyTimer';
 
 interface Message {
   id: string;
@@ -363,18 +365,24 @@ export default function AIChat() {
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-ai flex items-center justify-center shadow-glow animate-glow-pulse">
-                <Sparkles className="w-5 h-5 text-white" />
+              <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-ai flex items-center justify-center shadow-glow animate-glow-pulse">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">CGPA Agent</h1>
+                  <p className="text-xs text-muted-foreground">Your AI Academic Companion</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">CGPA Agent</h1>
-                <p className="text-xs text-muted-foreground">Your AI Academic Companion</p>
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <StudyTimer />
+              <SavedResponses />
             </div>
           </div>
         </div>
@@ -388,21 +396,40 @@ export default function AIChat() {
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
             >
-              <Card
-                className={`max-w-[80%] p-4 ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-card'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <p className="text-xs opacity-70 mt-2">
-                  {message.timestamp.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </Card>
+              <div className="flex flex-col gap-2 max-w-[80%]">
+                <Card
+                  className={`p-4 ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-xs opacity-70 mt-2">
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </Card>
+                {message.role === 'assistant' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="self-end"
+                    onClick={() => {
+                      saveResponse(message.content);
+                      toast({
+                        title: 'Saved!',
+                        description: 'Response saved for later reference',
+                      });
+                    }}
+                  >
+                    <Bookmark className="w-4 h-4 mr-1" />
+                    Save
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
           <div ref={messagesEndRef} />
