@@ -161,15 +161,18 @@ export default function AIChat() {
         return `${before} point ${afterDigits}`;
       });
 
-      // Split text into sentences for better pacing
-      const sentences = processedText.split(/([.!?]+)/).filter(s => s.trim());
+      // Split into sentences properly without duplicating content
+      const sentences = processedText
+        .split(/(?<=[.!?])\s+/)
+        .filter(s => s.trim().length > 0);
+      
       let currentIndex = 0;
 
       const speakNextSentence = () => {
         if (currentIndex >= sentences.length) return;
 
-        const sentence = sentences[currentIndex] + (sentences[currentIndex + 1] || '');
-        currentIndex += 2;
+        const sentence = sentences[currentIndex];
+        currentIndex++;
 
         const utterance = new SpeechSynthesisUtterance(sentence.trim());
         utterance.rate = 0.85; // Slower for clarity
