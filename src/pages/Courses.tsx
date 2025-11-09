@@ -1,20 +1,40 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Edit, Trash2, AlertCircle, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Courses() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const { getCurrentSemesterCourses, getCurrentGPA, getCarryovers, deleteCourse } = useCourses();
   const { toast } = useToast();
 
   const currentCourses = getCurrentSemesterCourses();
   const gpa = getCurrentGPA();
   const carryovers = getCarryovers();
+  
+  const [expectedCourses, setExpectedCourses] = useState<number>(
+    user?.expectedCoursesThisSemester || 0
+  );
+  const [isEditingTarget, setIsEditingTarget] = useState(false);
+
+  const remainingCourses = Math.max(0, expectedCourses - currentCourses.length);
+
+  const handleSaveExpectedCourses = () => {
+    if (expectedCourses > 0) {
+      updateProfile({ ...user!, expectedCoursesThisSemester: expectedCourses });
+      setIsEditingTarget(false);
+      toast({
+        title: 'Target Set',
+        description: `You've set a target of ${expectedCourses} courses this semester.`,
+      });
+    }
+  };
 
   const handleDelete = (id: string, courseCode: string) => {
     deleteCourse(id);
@@ -49,12 +69,63 @@ export default function Courses() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold text-primary">{gpa.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">Semester GPA</div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <div>
+                <div className="text-3xl font-bold text-primary">{gpa.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">Semester GPA</div>
+              </div>
+              
+              {expectedCourses > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">
+                      {remainingCourses}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Remaining</div>
+                  </div>
+                </div>
+              )}
             </div>
-            <Button onClick={() => navigate('/add-course')}>Add Course</Button>
+            
+            <div className="flex gap-2">
+              {!isEditingTarget ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsEditingTarget(true)}
+                >
+                  <Target className="w-4 h-4 mr-2" />
+                  {expectedCourses > 0 ? 'Edit Target' : 'Set Target'}
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={expectedCourses || ''}
+                    onChange={(e) => setExpectedCourses(parseInt(e.target.value) || 0)}
+                    className="w-20 h-9"
+                    placeholder="0"
+                  />
+                  <Button size="sm" onClick={handleSaveExpectedCourses}>
+                    Save
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => setIsEditingTarget(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+              <Button onClick={() => navigate('/add-course')}>Add Course</Button>
+            </div>
           </div>
         </div>
       </header>
@@ -151,7 +222,12 @@ export default function Courses() {
 
       {/* Footer */}
       <footer className="fixed bottom-4 left-0 right-0 text-center">
-        <p className="text-xs text-muted-foreground">Powered by NoskyTech</p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-border shadow-sm">
+          <span className="text-xs text-muted-foreground">Powered by</span>
+          <span className="text-sm font-bold bg-gradient-primary bg-clip-text text-transparent">
+            NoskyTech
+          </span>
+        </div>
       </footer>
     </div>
   );

@@ -7,6 +7,7 @@ export interface UserProfile {
   about?: string;
   currentLevel: string;
   currentSemester: string;
+  expectedCoursesThisSemester?: number;
   createdAt: string;
 }
 

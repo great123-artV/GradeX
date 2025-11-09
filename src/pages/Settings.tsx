@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,20 +9,53 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, LogOut, Moon, Sun, Monitor } from 'lucide-react';
+import { ArrowLeft, LogOut, Moon, Sun, Monitor, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getStoredData, saveTheme, saveVoiceEnabled, saveTutorialCompleted } from '@/lib/storage';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, updateProfile, logout } = useAuth();
+  const { courses } = useCourses();
   const { toast } = useToast();
+
+  // Group courses by level and semester
+  const groupedCourses = courses.reduce((acc, course) => {
+    const key = `${course.level}-${course.semester}`;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(course);
+    return acc;
+  }, {} as Record<string, typeof courses>);
+
+  // Sort the keys to show chronologically
+  const sortedKeys = Object.keys(groupedCourses).sort((a, b) => {
+    const [levelA, semA] = a.split('-');
+    const [levelB, semB] = b.split('-');
+    if (levelA !== levelB) return parseInt(levelA) - parseInt(levelB);
+    return parseInt(semA) - parseInt(semB);
+  });
+
+  const getGradeColor = (grade: string) => {
+    if (grade === 'A') return 'text-success';
+    if (grade === 'B') return 'text-primary';
+    if (grade === 'C' || grade === 'D') return 'text-accent';
+    if (grade === 'E') return 'text-muted-foreground';
+    return 'text-destructive';
+  };
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -232,6 +266,68 @@ export default function Settings() {
           </Button>
         </Card>
 
+        {/* Course History */}
+        {courses.length > 0 && (
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">Course History</h2>
+            </div>
+            
+            <Accordion type="single" collapsible className="w-full">
+              {sortedKeys.map((key) => {
+                const [level, semester] = key.split('-');
+                const semesterCourses = groupedCourses[key];
+                const semesterGPA = semesterCourses.reduce((sum, c) => {
+                  const points = c.grade === 'A' ? 5 : c.grade === 'B' ? 4 : c.grade === 'C' ? 3 : c.grade === 'D' ? 2 : c.grade === 'E' ? 1 : 0;
+                  return sum + (points * c.units);
+                }, 0) / semesterCourses.reduce((sum, c) => sum + c.units, 0);
+
+                return (
+                  <AccordionItem key={key} value={key}>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <span className="font-medium">
+                          Level {level} • Semester {semester}
+                        </span>
+                        <span className="text-sm font-semibold text-primary">
+                          GPA: {semesterGPA.toFixed(2)}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2 pt-2">
+                        {semesterCourses.map((course) => (
+                          <div
+                            key={course.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono text-sm font-semibold text-primary">
+                                  {course.code}
+                                </span>
+                                <span className={`text-xl font-bold ${getGradeColor(course.grade)}`}>
+                                  {course.grade}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground">{course.title}</p>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                <span>{course.units} Units</span>
+                                <span>Score: {course.score}/100</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </Card>
+        )}
+
         {/* Privacy Policy */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Privacy Policy</h2>
@@ -262,7 +358,12 @@ export default function Settings() {
 
       {/* Footer */}
       <footer className="fixed bottom-4 left-0 right-0 text-center">
-        <p className="text-xs text-muted-foreground">Powered by NoskyTech</p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm border border-border shadow-sm">
+          <span className="text-xs text-muted-foreground">Powered by</span>
+          <span className="text-sm font-bold bg-gradient-primary bg-clip-text text-transparent">
+            NoskyTech
+          </span>
+        </div>
       </footer>
     </div>
   );

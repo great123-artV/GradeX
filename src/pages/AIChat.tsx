@@ -21,7 +21,7 @@ interface Message {
 export default function AIChat() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getCGPA, getCarryovers, getCurrentSemesterCourses } = useCourses();
+  const { getCGPA, getCarryovers, getCurrentSemesterCourses, getCurrentGPA } = useCourses();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -58,101 +58,20 @@ export default function AIChat() {
 
     // Identity
     if (lowerInput.includes('your name') || lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created')) {
-      return `I'm CGPA Agent, built by NoskyTech for UNN students. I help with grades, solve problems, and explain concepts clearly. What do you need help with?`;
+      return `I'm CGPA Agent, built by NoskyTech for UNN students. I specialize in CGPA tracking and study tips to help you excel academically. What do you need help with?`;
     }
 
     // Greetings
     if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) {
-      return `Hi ${user?.name}! How can I help you today?`;
-    }
-
-    // Math - Derivatives
-    if (lowerInput.includes('derivative') || lowerInput.includes('differentiate')) {
-      return `Let me explain derivatives step by step. The derivative shows the rate of change. Basic rules: d/dx(x^n) equals n times x^(n-1). For example, d/dx(x^3) equals 3x^2. The derivative of sine x is cosine x. The derivative of e^x stays as e^x. Tell me your specific problem and I'll walk you through it.`;
-    }
-
-    // Math - Integrals
-    if (lowerInput.includes('integral') || lowerInput.includes('integrate')) {
-      return `Integration is the reverse of differentiation. Here are the key rules. The integral of x^n is x^(n+1) divided by (n+1), plus C. The integral of e^x is e^x plus C. The integral of 1/x is ln of absolute x, plus C. Share your specific problem.`;
-    }
-
-    // Math - Matrices
-    if (lowerInput.includes('matrix') || lowerInput.includes('matrices')) {
-      return `Matrices are rectangular arrays of numbers. To add matrices, add corresponding elements. To multiply, use row times column. The determinant of a 2×2 matrix with elements a, b, c, d is ad minus bc. What matrix operation do you need help with?`;
-    }
-
-    // Math - Probability/Statistics
-    if (lowerInput.includes('probability') || lowerInput.includes('statistics')) {
-      return `Let's break down statistics. The mean is the average of all numbers. The median is the middle value. Probability equals favorable outcomes divided by total outcomes. For combinations, use n factorial divided by r factorial times (n minus r) factorial. What's your specific question?`;
-    }
-
-    // General Math
-    const mathKeywords = ['solve', 'calculate', 'equation', 'algebra', 'geometry', 'trigonometry', 'calculus'];
-    if (mathKeywords.some(k => lowerInput.includes(k)) || /[\d+\-*/^()=]/.test(userInput)) {
-      return `I can solve this with you. First, identify what you know and what you need to find. Second, choose the right formula. Third, solve step by step. Fourth, check your answer. Share the details of your problem.`;
-    }
-
-    // Programming
-    if (lowerInput.includes('algorithm') || lowerInput.includes('programming') || lowerInput.includes('code') || lowerInput.includes('logic')) {
-      return `Let me explain programming concepts clearly. Variables store data. Loops repeat actions using for or while. Conditionals make decisions using if and else. Functions are reusable blocks of code. Arrays store collections of data. What specific programming topic do you need explained?`;
-    }
-
-    // Physics
-    if (lowerInput.includes('physics') || lowerInput.includes('force') || lowerInput.includes('motion') || lowerInput.includes('energy')) {
-      return `Physics is about understanding how things work. Force equals mass times acceleration. Kinetic energy equals one half times mass times velocity squared. Potential energy equals mass times gravity times height. Work equals force times distance. What physics concept should I explain?`;
-    }
-
-    // Chemistry
-    if (lowerInput.includes('chemistry') || lowerInput.includes('chemical') || lowerInput.includes('reaction') || lowerInput.includes('molecule')) {
-      return `Chemistry studies matter and reactions. Atoms have protons, neutrons, and electrons. Chemical bonds can be ionic or covalent. To balance equations, make sure atoms are equal on both sides. The number of moles equals mass divided by molar mass. What chemistry topic do you need help with?`;
-    }
-
-    // Biology
-    if (lowerInput.includes('biology') || lowerInput.includes('cell') || lowerInput.includes('genetics') || lowerInput.includes('ecology')) {
-      return `Biology is the study of living things. Cells have organelles like nucleus, mitochondria, and ribosomes. DNA carries genetic information. Mitosis creates identical cells. Meiosis creates sex cells. Ecosystems have producers, consumers, and decomposers. What biological concept should I explain?`;
-    }
-
-    // Explanation requests
-    if (lowerInput.includes('explain') || lowerInput.includes('what is') || lowerInput.includes('how does') || lowerInput.includes('tell me about')) {
-      return `I can explain that clearly. Please tell me the specific topic you want to understand. I can help with math, science, programming, or study techniques.`;
-    }
-
-    // Problem solving
-    if (lowerInput.includes('problem') || lowerInput.includes('stuck') || lowerInput.includes('difficult') || lowerInput.includes('hard')) {
-      return `When stuck on a problem, try this. First, read carefully and highlight key information. Second, break it into smaller parts. Third, draw a diagram if possible. Fourth, try working backwards. Take a short break if needed. I'm here to help you.`;
-    }
-
-    // Study methods
-    if (lowerInput.includes('notes') || lowerInput.includes('note-taking') || lowerInput.includes('study method')) {
-      return `Good note-taking is essential. Use the Cornell Method: divide your page into notes, cues, and summary sections. Review your notes within 24 hours. Test yourself regularly using active recall. Teach the material to someone else. This helps you remember better.`;
-    }
-
-    // Time
-    if (lowerInput.includes('time') || lowerInput.includes('what time') || lowerInput.includes('current time')) {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-      return `The current time is ${timeStr}.`;
-    }
-
-    // UNN
-    if (lowerInput.includes('unn') || lowerInput.includes('university of nigeria') || lowerInput.includes('nsukka')) {
-      if (lowerInput.includes('grading') || lowerInput.includes('system')) {
-        return 'UNN uses a 5-point grading system. A grade equals 70-100 which is 5 points. B equals 60-69 which is 4 points. C equals 50-59 which is 3 points. D equals 45-49 which is 2 points. E equals 40-44 which is 1 point. F equals 0-39 which is 0 points. You need at least 40 to pass.';
-      }
-      return `UNN was established in 1960 as Nigeria's first indigenous university. It's known for academic excellence and producing great leaders. I'm here to help you succeed as a UNN student.`;
-    }
-
-    // Study tips
-    if (lowerInput.includes('study tip') || lowerInput.includes('how to study') || lowerInput.includes('study better')) {
-      return `Here are proven study strategies. First, attend every lecture. Second, review notes within 24 hours. Third, practice past questions. Fourth, join a serious study group. Fifth, use the Pomodoro Technique: study for 25 minutes, then rest for 5 minutes. Sixth, complete all CAs and assignments. Consistency beats cramming.`;
+      return `Hi ${user?.name}! I'm here to help with your CGPA and study strategies. How can I assist you today?`;
     }
 
     // CGPA
-    if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa') || lowerInput.includes('what is my cgpa')) {
+    if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa') || lowerInput.includes('what is my cgpa') || lowerInput.includes('cgpa')) {
       if (cgpa === 0) {
         return `You haven't added any courses yet. Go to the Courses page to add your grades so I can track your progress.`;
       }
-      let response = `Your CGPA is ${cgpa.toFixed(2)} out of 5.0. `;
+      let response = `Your CGPA is ${cgpa.toFixed(2)} out of 5 point 0. `;
       if (cgpa >= 4.5) {
         response += `Excellent work! You're in first-class territory. Keep it up.`;
       } else if (cgpa >= 3.5) {
@@ -165,12 +84,46 @@ export default function AIChat() {
       return response;
     }
 
+    // GPA
+    if (lowerInput.includes('gpa') || lowerInput.includes('grade point')) {
+      const currentGPA = getCurrentGPA();
+      if (currentGPA === 0) {
+        return `You haven't added any courses for this semester yet.`;
+      }
+      return `Your current semester GPA is ${currentGPA.toFixed(2)} out of 5 point 0.`;
+    }
+
     // Carryovers
     if (lowerInput.includes('carryover') || lowerInput.includes('carry over') || lowerInput.includes('failed course')) {
       if (carryovers.length === 0) {
         return `Great! You have no carry-over courses.`;
       }
       return `You have ${carryovers.length} carry-over course${carryovers.length > 1 ? 's' : ''}. Here's what to do. First, understand why you struggled before. Second, get past questions. Third, attend all classes this time. Fourth, complete every assignment. You can clear these courses.`;
+    }
+
+    // UNN Grading System
+    if (lowerInput.includes('unn') || lowerInput.includes('grading') || lowerInput.includes('system') || lowerInput.includes('grade scale')) {
+      return 'UNN uses a 5-point grading system. A grade equals 70 to 100 which is 5 points. B equals 60 to 69 which is 4 points. C equals 50 to 59 which is 3 points. D equals 45 to 49 which is 2 points. E equals 40 to 44 which is 1 point. F equals 0 to 39 which is 0 points. You need at least 40 to pass.';
+    }
+
+    // Study tips
+    if (lowerInput.includes('study tip') || lowerInput.includes('how to study') || lowerInput.includes('study better') || lowerInput.includes('improve') || lowerInput.includes('tips') || lowerInput.includes('advice')) {
+      return `Here are proven study strategies. First, attend every lecture. Second, review notes within 24 hours. Third, practice past questions. Fourth, join a serious study group. Fifth, use the Pomodoro Technique: study for 25 minutes, then rest for 5 minutes. Sixth, complete all CAs and assignments. Consistency beats cramming.`;
+    }
+
+    // Time management
+    if (lowerInput.includes('time management') || lowerInput.includes('manage time') || lowerInput.includes('organize')) {
+      return `Good time management is key to success. Create a weekly timetable. Allocate specific hours for each course. Prioritize assignments by deadline. Break large tasks into smaller parts. Avoid distractions during study time. Review your progress weekly.`;
+    }
+
+    // Note-taking
+    if (lowerInput.includes('notes') || lowerInput.includes('note-taking') || lowerInput.includes('study method')) {
+      return `Good note-taking is essential. Use the Cornell Method: divide your page into notes, cues, and summary sections. Review your notes within 24 hours. Test yourself regularly using active recall. Teach the material to someone else. This helps you remember better.`;
+    }
+
+    // Exam preparation
+    if (lowerInput.includes('exam') || lowerInput.includes('test') || lowerInput.includes('prepare')) {
+      return `Here's how to prepare for exams. Start early, at least 2 weeks before. Get past questions and practice them. Study in short focused sessions. Form study groups. Teach concepts to others. Sleep well before exams. Arrive early on exam day.`;
     }
 
     // Motivation
@@ -185,24 +138,31 @@ export default function AIChat() {
       return motivations[Math.floor(Math.random() * motivations.length)];
     }
 
-    // Improvement
-    if (lowerInput.includes('improve') || lowerInput.includes('better') || lowerInput.includes('tips') || lowerInput.includes('advice')) {
-      return `Here's how to improve your grades. First, never skip CAs or assignments at UNN. They add crucial marks. Second, study 2 hours daily instead of cramming. Third, practice past questions repeatedly. Fourth, ask for help early when confused. Fifth, get enough sleep. Sixth, eat well and exercise. Excellence is built through daily habits.`;
+    // CAs and assignments
+    if (lowerInput.includes('ca') || lowerInput.includes('assignment') || lowerInput.includes('continuous assessment')) {
+      return `CAs and assignments are crucial at UNN. They can add 30 to 40 marks to your total. Never miss a CA. Submit all assignments on time. Do them yourself to understand the material. These marks can move you from a lower grade to a higher one.`;
     }
 
     // Thank you
     if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
-      return `You're welcome! I'm here whenever you need help.`;
+      return `You're welcome! I'm here whenever you need help with your CGPA or study strategies.`;
     }
 
-    // Default
-    return `I can help you with many things. I can solve math problems, explain science concepts, help with programming, track your CGPA, or provide study tips. What do you need help with?`;
+    // Default - Redirect to scope
+    return `I specialize in CGPA tracking and study tips. I can help you with: checking your CGPA, understanding the UNN grading system, study strategies, exam preparation, time management, and motivation. What would you like to know?`;
   };
 
   const speakMessage = (text: string) => {
     if ('speechSynthesis' in window && voiceEnabled) {
+      // Replace decimal points in numbers with "point" for proper pronunciation
+      const processedText = text.replace(/(\d+)\.(\d+)/g, (match, before, after) => {
+        // Convert each digit after decimal to individual pronunciation
+        const afterDigits = after.split('').join(' ');
+        return `${before} point ${afterDigits}`;
+      });
+
       // Split text into sentences for better pacing
-      const sentences = text.split(/([.!?]+)/).filter(s => s.trim());
+      const sentences = processedText.split(/([.!?]+)/).filter(s => s.trim());
       let currentIndex = 0;
 
       const speakNextSentence = () => {
