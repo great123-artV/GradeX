@@ -33,10 +33,12 @@ export default function AIChat() {
   const carryovers = getCarryovers();
   const currentCourses = getCurrentSemesterCourses();
   const { voiceEnabled } = getStoredData();
+  const hasInitialized = useRef(false);
 
+  // Initialize welcome message only once
   useEffect(() => {
-    // Initialize with welcome message
-    if (messages.length === 0) {
+    if (!hasInitialized.current && messages.length === 0) {
+      hasInitialized.current = true;
       const welcomeMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -48,8 +50,10 @@ export default function AIChat() {
         speakMessage(welcomeMsg.content);
       }
     }
+  }, []);
 
-    // Scroll to bottom on new messages
+  // Scroll to bottom on new messages
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -154,42 +158,22 @@ export default function AIChat() {
 
   const speakMessage = (text: string) => {
     if ('speechSynthesis' in window && voiceEnabled) {
+      // Cancel any ongoing speech first
+      window.speechSynthesis.cancel();
+      
       // Replace decimal points in numbers with "point" for proper pronunciation
       const processedText = text.replace(/(\d+)\.(\d+)/g, (match, before, after) => {
-        // Convert each digit after decimal to individual pronunciation
         const afterDigits = after.split('').join(' ');
         return `${before} point ${afterDigits}`;
       });
 
-      // Split into sentences properly without duplicating content
-      const sentences = processedText
-        .split(/(?<=[.!?])\s+/)
-        .filter(s => s.trim().length > 0);
-      
-      let currentIndex = 0;
+      // Create single utterance for the entire message
+      const utterance = new SpeechSynthesisUtterance(processedText);
+      utterance.rate = 0.9; // Slightly slower for clarity
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
 
-      const speakNextSentence = () => {
-        if (currentIndex >= sentences.length) return;
-
-        const sentence = sentences[currentIndex];
-        currentIndex++;
-
-        const utterance = new SpeechSynthesisUtterance(sentence.trim());
-        utterance.rate = 0.85; // Slower for clarity
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-
-        // Add pause between sentences
-        utterance.onend = () => {
-          setTimeout(() => {
-            speakNextSentence();
-          }, 400); // 400ms pause between sentences
-        };
-
-        window.speechSynthesis.speak(utterance);
-      };
-
-      speakNextSentence();
+      window.speechSynthesis.speak(utterance);
     }
   };
 
