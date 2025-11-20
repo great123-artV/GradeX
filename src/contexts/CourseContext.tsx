@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { Course, calculateGPA, calculateCGPA, getCarryoverCourses } from '@/lib/grading';
+import { Course, calculateGPA, calculateCGPA, getCarryoverCourses, CGPACalculationResult } from '@/lib/grading';
 import { getStoredData, saveCourses } from '@/lib/storage';
 
 interface CourseContextType {
@@ -10,6 +10,7 @@ interface CourseContextType {
   getCurrentSemesterCourses: () => Course[];
   getCurrentGPA: () => number;
   getCGPA: () => number;
+  getCGPADetails: (courses: Course[], prior: { cgpa: number, units: number }) => CGPACalculationResult;
   getCarryovers: () => Course[];
 }
 
@@ -74,7 +75,11 @@ export function CourseProvider({ children }: CourseProviderProps) {
   };
 
   const getCGPA = () => {
-    return calculateCGPA(courses);
+    return calculateGPA(courses);
+  };
+
+  const getCGPADetails = (courses: Course[], prior: { cgpa: number, units: number }) => {
+    return calculateCGPA(courses, prior);
   };
 
   const getCarryovers = () => {
@@ -91,6 +96,7 @@ export function CourseProvider({ children }: CourseProviderProps) {
         getCurrentSemesterCourses,
         getCurrentGPA,
         getCGPA,
+        getCGPADetails,
         getCarryovers,
       }}
     >
