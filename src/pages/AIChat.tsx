@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getStoredData } from '@/lib/storage';
 import { SavedResponses, saveResponse } from '@/components/SavedResponses';
 import { StudyTimer } from '@/components/StudyTimer';
+import { Course } from '@/lib/grading';
 
 interface Message {
   id: string;
@@ -21,7 +22,7 @@ interface Message {
 export default function AIChat() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getCGPA, getCarryovers, getCurrentSemesterCourses, getCurrentGPA } = useCourses();
+  const { getCGPA, getCGPADetails, getCarryovers, getCurrentSemesterCourses, getCurrentGPA } = useCourses();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -60,6 +61,38 @@ export default function AIChat() {
   const generateResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
 
+    // CGPA Calculation
+    if (lowerInput.includes('calculate') && lowerInput.includes('cgpa')) {
+      const courseRegex = /(\w+\d+)\s*\((\d+)u,\s*(\d+)\)/g;
+      const priorRegex = /prior cgpa:\s*(\d+\.\d+)\s*across\s*(\d+)\s*units/g;
+
+      const courses: Omit<Course, 'id' | 'grade' | 'title' | 'semester' | 'level'>[] = [];
+      let match;
+      while ((match = courseRegex.exec(lowerInput)) !== null) {
+        courses.push({
+          code: match[1].toUpperCase(),
+          units: parseInt(match[2], 10),
+          score: parseInt(match[3], 10),
+        });
+      }
+
+      const priorMatch = priorRegex.exec(lowerInput);
+      const prior = priorMatch
+        ? { cgpa: parseFloat(priorMatch[1]), units: parseInt(priorMatch[2], 10) }
+        : { cgpa: 0, units: 0 };
+
+      if (courses.length === 0) {
+        return "Please provide the course details in the format: `CODE (X-units, Y-score)`. For example, `I got MTH101 (3u, 72), CHM101 (2u, 58)`. You can also include prior CGPA like `Prior CGPA: 2.85 across 60 units`.";
+      }
+
+      const result = getCGPADetails(courses, prior);
+      const steps = result.steps.join('\n');
+      const finalCGPA = result.cumulativeCGPADisplay;
+
+      const tip = `Nice work! To keep improving, focus on targeted revision for any topics you found challenging.`;
+      return `Here's the calculation breakdown:\n\n${steps}\n\n**Your new CGPA is ${finalCGPA}.**\n\n${tip}`;
+    }
+
     // Identity
     if (lowerInput.includes('your name') || lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created')) {
       return `I'm CGPA Agent, built by NoskyTech for UNN students. I specialize in CGPA tracking and study tips to help you excel academically. What do you need help with?`;
@@ -68,6 +101,21 @@ export default function AIChat() {
     // Greetings
     if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) {
       return `Hi ${user?.name}! I'm here to help with your CGPA and study strategies. How can I assist you today?`;
+    }
+
+    // Study Plan
+    if (lowerInput.includes('study plan') || lowerInput.includes('help me plan')) {
+      return `Of course! A good plan is key. Here’s a high-level 10-day study plan you can adapt:
+      - **Days 1–3:** Map syllabus for each course; make concise notes (1 page per lecture).
+      - **Days 4–7:** Active recall + past questions (Pomodoro 25/5, 4 cycles × 2 sessions/day).
+      - **Days 8–9:** Mixed practice under timed conditions; self-test.
+      - **Day 10:** Light review, sleep early, quick formula/facts sheet.
+      Remember to use techniques like spaced repetition and interleaving. Small daily wins compound!`;
+    }
+
+    // Refusal (Safety)
+    if (lowerInput.includes('exam answers') || lowerInput.includes('exam leaks')) {
+      return `I can’t help with that. Sharing or requesting exam answers violates academic integrity. However, I can help you succeed ethically. Would you like a targeted study plan, practice questions for specific topics, or help emailing your lecturer for clarifications?`;
     }
 
     // CGPA
