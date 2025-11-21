@@ -121,14 +121,14 @@ export function calculateCGPA(courses: Array<{ code: string; units: number; scor
   const breakdown: BreakdownItem[] = [];
 
   for (const c of courses) {
-    const unit = Number(c.units);
+    const units = Number(c.units);
     const score = Number(c.score);
     const conv = scoreToPoint(score);
-    const points = unit * conv.point;
-    semesterUnits += unit;
+    const points = units * conv.point;
+    semesterUnits += units;
     semesterPoints += points;
-    breakdown.push({ code: c.code, units: unit, score, letter: conv.letter, point: conv.point, points });
-    steps.push(`${c.code}: ${score} → ${conv.letter} (${conv.point}) → ${unit} × ${conv.point} = ${points}`);
+    breakdown.push({ code: c.code, units, score, letter: conv.letter, point: conv.point, points });
+    steps.push(`${c.code}: ${score} → ${conv.letter} (${conv.point}) → ${units} × ${conv.point} = ${points}`);
   }
 
   // Semester GPA

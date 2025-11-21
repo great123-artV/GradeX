@@ -65,8 +65,6 @@ export default function AIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // --- Intent Handlers ---
-
   const handleGreeting = () => {
     const greetings = [
       `Hi ${user?.name}! How can I assist with your academics today?`,
