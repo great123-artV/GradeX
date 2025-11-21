@@ -40,7 +40,7 @@ export interface Course {
 
 export interface BreakdownItem {
   code: string;
-  unit: number;
+  units: number;
   score: number;
   letter: string;
   point: number;
@@ -127,7 +127,7 @@ export function calculateCGPA(courses: Array<{ code: string; units: number; scor
     const points = unit * conv.point;
     semesterUnits += unit;
     semesterPoints += points;
-    breakdown.push({ code: c.code, unit, score, letter: conv.letter, point: conv.point, points });
+    breakdown.push({ code: c.code, units: unit, score, letter: conv.letter, point: conv.point, points });
     steps.push(`${c.code}: ${score} → ${conv.letter} (${conv.point}) → ${unit} × ${conv.point} = ${points}`);
   }
 
