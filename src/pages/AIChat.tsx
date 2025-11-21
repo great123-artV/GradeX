@@ -117,6 +117,25 @@ export default function AIChat() {
     return `For academic issues, your Course Adviser is usually the best person to ask first. If it's a serious issue, you might need to speak with your Head of Department (HOD).`;
   };
 
+  const handleEmotionalIntelligence = () => {
+    const responses = [
+      `I understand that this can be disheartening. Remember that your CGPA doesn't define you. Let's focus on small, consistent steps to improve next semester.`,
+      `It's completely normal to feel frustrated. The key is to turn that feeling into fuel. What's one course you think you can improve in?`,
+      `I hear you. Setbacks are temporary. Let's identify the courses pulling your CGPA down and make a plan to tackle them.`
+    ];
+    return getRandomItem(responses);
+  };
+
+  const getDynamicTip = (courses: Omit<Course, 'id' | 'grade' | 'title' | 'semester' | 'level'>[]) => {
+    const lowestCourse = courses.reduce((lowest, course) => course.score < lowest.score ? course : lowest, courses[0]);
+    const tips = [
+      `For ${lowestCourse.code}, try using active recall and practice quizzes to strengthen your weak areas.`,
+      `To boost your grade in ${lowestCourse.code}, focus on reviewing past questions and attending all tutorials.`,
+      `A little extra focus on ${lowestCourse.code} could make a big difference. Try summarizing each lecture in your own words.`
+    ];
+    return `💡 Tip: ${getRandomItem(tips)}`;
+  };
+
   const generateResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
 
@@ -128,10 +147,13 @@ export default function AIChat() {
     if (lowerInput.includes('who to meet') || lowerInput.includes('lost result') || lowerInput.includes('deadline')) {
       return handleAcademicNavigation(lowerInput);
     }
+    if (lowerInput.includes('frustrated') || lowerInput.includes('sad') || lowerInput.includes('disappointed') || lowerInput.includes('lower than i expected')) {
+      return handleEmotionalIntelligence();
+    }
 
     // CGPA Calculation
     if (lowerInput.includes('calculate') && lowerInput.includes('cgpa')) {
-      const courseRegex = /(\w+\d+)\s*\((\d+)\s*units?,\s*(\d+)\)/g;
+      const courseRegex = /(\w+\d+)\s*\((\d+)\s*u(?:nits?)?,\s*(\d+)\)/g;
       const priorRegex = /prior cgpa:\s*(\d+\.\d+)\s*across\s*(\d+)\s*units/g;
 
       const courses: Omit<Course, 'id' | 'grade' | 'title' | 'semester' | 'level'>[] = [];
@@ -157,7 +179,7 @@ export default function AIChat() {
       const steps = result.steps.join('\n');
       const finalCGPA = result.cumulativeCGPADisplay;
 
-      const tip = `💡 Tip: Your CGPA improved! Focus on weaker topics in any course where you scored below a 'B' using active recall and short practice quizzes.`;
+      const tip = getDynamicTip(courses);
       let interpretation = '';
       if (finalCGPA >= 4.5) {
         interpretation = `This is an outstanding result that puts you in the First Class honors category. Keep up the excellent work!`;
