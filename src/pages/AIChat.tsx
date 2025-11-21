@@ -19,6 +19,9 @@ interface Message {
   timestamp: Date;
 }
 
+// Helper function to get a random item from an array
+const getRandomItem = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
 export default function AIChat() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -32,7 +35,6 @@ export default function AIChat() {
 
   const cgpa = getCGPA();
   const carryovers = getCarryovers();
-  const currentCourses = getCurrentSemesterCourses();
   const { voiceEnabled } = getStoredData();
   const hasInitialized = useRef(false);
 
@@ -40,10 +42,15 @@ export default function AIChat() {
   useEffect(() => {
     if (!hasInitialized.current && messages.length === 0) {
       hasInitialized.current = true;
+      const welcomeTemplates = [
+        `Hello ${user?.name}! I'm Cipher, your academic assistant. Your current CGPA is ${cgpa.toFixed(2)}. How can I help you navigate your studies today?`,
+        `Welcome back, ${user?.name}! Your CGPA is currently ${cgpa.toFixed(2)}. What academic goals can we tackle together?`,
+        `Hi ${user?.name}! It's Cipher. With a CGPA of ${cgpa.toFixed(2)}, you're on your way. Let's figure out what's next.`
+      ];
       const welcomeMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `Hello ${user?.name}! I'm your CGPA Agent, built by NoskyTech specifically to help UNN students achieve academic excellence. Your current CGPA is ${cgpa.toFixed(2)}. I'm here to guide you, motivate you, and help you succeed. How can I assist you today?`,
+        content: getRandomItem(welcomeTemplates),
         timestamp: new Date(),
       };
       setMessages([welcomeMsg]);
@@ -58,12 +65,73 @@ export default function AIChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // --- Intent Handlers ---
+
+  const handleGreeting = () => {
+    const greetings = [
+      `Hi ${user?.name}! How can I assist with your academics today?`,
+      `Hello there! Ready to strategize for success?`,
+      `Welcome! What's on your mind regarding your studies?`
+    ];
+    return getRandomItem(greetings);
+  };
+
+  const handleCgpaQuery = () => {
+    if (cgpa === 0) {
+      return `It looks like you haven't added any courses yet. Once you do, I can track your CGPA progress right here.`;
+    }
+    const responses = {
+      firstClass: `Your CGPA is ${cgpa.toFixed(2)}. That's first-class territory—excellent work!`,
+      secondClassUpper: `You're at ${cgpa.toFixed(2)}, which is a strong Second Class Upper. Keep up the great work!`,
+      secondClassLower: `Your CGPA is currently ${cgpa.toFixed(2)}. You're making steady progress; let's keep pushing.`,
+      pass: `With a CGPA of ${cgpa.toFixed(2)}, there's room for improvement. Every small effort counts.`
+    };
+    if (cgpa >= 4.5) return responses.firstClass;
+    if (cgpa >= 3.5) return responses.secondClassUpper;
+    if (cgpa >= 2.5) return responses.secondClassLower;
+    return responses.pass;
+  };
+
+  const handleGpaQuery = () => {
+    const currentGPA = getCurrentGPA();
+    if (currentGPA === 0) {
+      return `No courses have been added for this semester yet, so I can't calculate your GPA.`;
+    }
+    return `Your GPA for the current semester is ${currentGPA.toFixed(2)}.`;
+  };
+
+  const handleCarryoverQuery = () => {
+    if (carryovers.length === 0) {
+      return `Great news! You have no carry-over courses. Keep up the excellent work.`;
+    }
+    return `You have ${carryovers.length} carry-over course${carryovers.length > 1 ? 's' : ''}. The key is to understand past challenges, get relevant materials, and stay consistent. You can clear them.`;
+  };
+
+  const handleAcademicNavigation = (input: string) => {
+    if (input.includes('lost result') || input.includes('missing result')) {
+      return `For a missing result, your first point of contact should be your Course Adviser. They can check departmental records. If they can't help, the Faculty Office is your next stop.`;
+    }
+    if (input.includes('deadline')) {
+      return `If you've missed a deadline, it's best to speak directly with the lecturer in charge. If that doesn't resolve it, your Course Adviser can provide guidance on the next steps.`;
+    }
+    return `For academic issues, your Course Adviser is usually the best person to ask first. If it's a serious issue, you might need to speak with your Head of Department (HOD).`;
+  };
+
   const generateResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
 
+    // Intent Detection
+    if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) return handleGreeting();
+    if (lowerInput.includes('my cgpa') || lowerInput.includes('what is my cgpa')) return handleCgpaQuery();
+    if (lowerInput.includes('gpa')) return handleGpaQuery();
+    if (lowerInput.includes('carryover')) return handleCarryoverQuery();
+    if (lowerInput.includes('who to meet') || lowerInput.includes('lost result') || lowerInput.includes('deadline')) {
+      return handleAcademicNavigation(lowerInput);
+    }
+
     // CGPA Calculation
     if (lowerInput.includes('calculate') && lowerInput.includes('cgpa')) {
-      const courseRegex = /(\w+\d+)\s*\((\d+)u,\s*(\d+)\)/g;
+      const courseRegex = /(\w+\d+)\s*\((\d+)\s*units?,\s*(\d+)\)/g;
       const priorRegex = /prior cgpa:\s*(\d+\.\d+)\s*across\s*(\d+)\s*units/g;
 
       const courses: Omit<Course, 'id' | 'grade' | 'title' | 'semester' | 'level'>[] = [];
@@ -82,145 +150,52 @@ export default function AIChat() {
         : { cgpa: 0, units: 0 };
 
       if (courses.length === 0) {
-        return "Please provide the course details in the format: `CODE (X-units, Y-score)`. For example, `I got MTH101 (3u, 72), CHM101 (2u, 58)`. You can also include prior CGPA like `Prior CGPA: 2.85 across 60 units`.";
+        return "Please provide course details in the format: `CODE (X units, Y score)`. You can also include prior CGPA like `Prior CGPA: 2.85 across 60 units`.";
       }
 
       const result = getCGPADetails(courses, prior);
       const steps = result.steps.join('\n');
       const finalCGPA = result.cumulativeCGPADisplay;
 
-      const tip = `Nice work! To keep improving, focus on targeted revision for any topics you found challenging.`;
-      return `Here's the calculation breakdown:\n\n${steps}\n\n**Your new CGPA is ${finalCGPA}.**\n\n${tip}`;
-    }
-
-    // Identity
-    if (lowerInput.includes('your name') || lowerInput.includes('who are you') || lowerInput.includes('what are you') || lowerInput.includes('who created')) {
-      return `I'm CGPA Agent, built by NoskyTech for UNN students. I specialize in CGPA tracking and study tips to help you excel academically. What do you need help with?`;
-    }
-
-    // Greetings
-    if (lowerInput.match(/^(hi|hello|hey|greetings)$/)) {
-      return `Hi ${user?.name}! I'm here to help with your CGPA and study strategies. How can I assist you today?`;
+      const tip = `💡 Tip: Your CGPA improved! Focus on weaker topics in any course where you scored below a 'B' using active recall and short practice quizzes.`;
+      let interpretation = '';
+      if (finalCGPA >= 4.5) {
+        interpretation = `This is an outstanding result that puts you in the First Class honors category. Keep up the excellent work!`;
+      } else if (finalCGPA >= 3.5) {
+        interpretation = `You're in the Second Class Upper division, which is a strong academic standing. Well done!`;
+      } else if (finalCGPA >= 2.5) {
+        interpretation = `This places you in the Second Class Lower division. You're making steady progress.`;
+      } else {
+        interpretation = `This is a Pass. Let's focus on strategies to boost this in the coming semester.`;
+      }
+      return `Alright, let’s break this down carefully.\n\n${steps}\n\n**New CGPA: ${finalCGPA}.**\n\n${interpretation}\n\n${tip}`;
     }
 
     // Study Plan
     if (lowerInput.includes('study plan') || lowerInput.includes('help me plan')) {
-      return `Of course! A good plan is key. Here’s a high-level 10-day study plan you can adapt:
-      - **Days 1–3:** Map syllabus for each course; make concise notes (1 page per lecture).
-      - **Days 4–7:** Active recall + past questions (Pomodoro 25/5, 4 cycles × 2 sessions/day).
-      - **Days 8–9:** Mixed practice under timed conditions; self-test.
-      - **Day 10:** Light review, sleep early, quick formula/facts sheet.
-      Remember to use techniques like spaced repetition and interleaving. Small daily wins compound!`;
+      return `Great, let’s map this out so you can maximize each day:\n\n- **Days 1–3:** Create concise notes for each course. Identify weak areas first.\n- **Days 4–7:** Active recall + past questions. Use 25/5 Pomodoro cycles.\n- **Days 8–9:** Mixed practice under timed conditions. Review errors carefully.\n- **Day 10:** Light review, sleep early, glance through formulas and definitions.\n\nRemember: “Small daily wins compound.” Even mastering one topic per day brings massive results.`;
     }
 
     // Refusal (Safety)
     if (lowerInput.includes('exam answers') || lowerInput.includes('exam leaks')) {
-      return `I can’t help with that. Sharing or requesting exam answers violates academic integrity. However, I can help you succeed ethically. Would you like a targeted study plan, practice questions for specific topics, or help emailing your lecturer for clarifications?`;
+      return `I’m here to help you learn, not break rules. I cannot provide exam answers.\n\nHere’s what you can do:\n\n- Create a targeted study plan\n- I can generate practice questions for the exact topics\n- Ask your lecturer for clarifications on tricky areas\n\nWhich of these would you like to start with?`;
     }
 
-    // CGPA
-    if (lowerInput.includes('my cgpa') || lowerInput.includes('current cgpa') || lowerInput.includes('what is my cgpa') || lowerInput.includes('cgpa')) {
-      if (cgpa === 0) {
-        return `You haven't added any courses yet. Go to the Courses page to add your grades so I can track your progress.`;
-      }
-      let response = `Your CGPA is ${cgpa.toFixed(2)} out of 5 point 0. `;
-      if (cgpa >= 4.5) {
-        response += `Excellent work! You're in first-class territory. Keep it up.`;
-      } else if (cgpa >= 3.5) {
-        response += `Good job. You're doing well. Keep working hard.`;
-      } else if (cgpa >= 2.5) {
-        response += `You're making progress. Focus on your CAs and assignments to boost your grades.`;
-      } else {
-        response += `Let's work on improving this together. Every mark counts.`;
-      }
-      return response;
-    }
-
-    // GPA
-    if (lowerInput.includes('gpa') || lowerInput.includes('grade point')) {
-      const currentGPA = getCurrentGPA();
-      if (currentGPA === 0) {
-        return `You haven't added any courses for this semester yet.`;
-      }
-      return `Your current semester GPA is ${currentGPA.toFixed(2)} out of 5 point 0.`;
-    }
-
-    // Carryovers
-    if (lowerInput.includes('carryover') || lowerInput.includes('carry over') || lowerInput.includes('failed course')) {
-      if (carryovers.length === 0) {
-        return `Great! You have no carry-over courses.`;
-      }
-      return `You have ${carryovers.length} carry-over course${carryovers.length > 1 ? 's' : ''}. Here's what to do. First, understand why you struggled before. Second, get past questions. Third, attend all classes this time. Fourth, complete every assignment. You can clear these courses.`;
-    }
-
-    // UNN Grading System
-    if (lowerInput.includes('unn') || lowerInput.includes('grading') || lowerInput.includes('system') || lowerInput.includes('grade scale')) {
-      return 'UNN uses a 5-point grading system. A grade equals 70 to 100 which is 5 points. B equals 60 to 69 which is 4 points. C equals 50 to 59 which is 3 points. D equals 45 to 49 which is 2 points. E equals 40 to 44 which is 1 point. F equals 0 to 39 which is 0 points. You need at least 40 to pass.';
-    }
-
-    // Study tips
-    if (lowerInput.includes('study tip') || lowerInput.includes('how to study') || lowerInput.includes('study better') || lowerInput.includes('improve') || lowerInput.includes('tips') || lowerInput.includes('advice')) {
-      return `Here are proven study strategies. First, attend every lecture. Second, review notes within 24 hours. Third, practice past questions. Fourth, join a serious study group. Fifth, use the Pomodoro Technique: study for 25 minutes, then rest for 5 minutes. Sixth, complete all CAs and assignments. Consistency beats cramming.`;
-    }
-
-    // Time management
-    if (lowerInput.includes('time management') || lowerInput.includes('manage time') || lowerInput.includes('organize')) {
-      return `Good time management is key to success. Create a weekly timetable. Allocate specific hours for each course. Prioritize assignments by deadline. Break large tasks into smaller parts. Avoid distractions during study time. Review your progress weekly.`;
-    }
-
-    // Note-taking
-    if (lowerInput.includes('notes') || lowerInput.includes('note-taking') || lowerInput.includes('study method')) {
-      return `Good note-taking is essential. Use the Cornell Method: divide your page into notes, cues, and summary sections. Review your notes within 24 hours. Test yourself regularly using active recall. Teach the material to someone else. This helps you remember better.`;
-    }
-
-    // Exam preparation
-    if (lowerInput.includes('exam') || lowerInput.includes('test') || lowerInput.includes('prepare')) {
-      return `Here's how to prepare for exams. Start early, at least 2 weeks before. Get past questions and practice them. Study in short focused sessions. Form study groups. Teach concepts to others. Sleep well before exams. Arrive early on exam day.`;
-    }
-
-    // Motivation
-    if (lowerInput.includes('motivate') || lowerInput.includes('encourage') || lowerInput.includes('inspiration')) {
-      const motivations = [
-        `Every mark counts. One assignment can change your grade from B to A. Give your best effort.`,
-        `You have great potential. Keep working hard and stay focused on your goals.`,
-        `Remember why you started university. Your dreams are achievable through consistent effort.`,
-        `Hard work pays off. Stay dedicated to your studies.`,
-        `You can do this. Every challenge makes you stronger.`,
-      ];
-      return motivations[Math.floor(Math.random() * motivations.length)];
-    }
-
-    // CAs and assignments
-    if (lowerInput.includes('ca') || lowerInput.includes('assignment') || lowerInput.includes('continuous assessment')) {
-      return `CAs and assignments are crucial at UNN. They can add 30 to 40 marks to your total. Never miss a CA. Submit all assignments on time. Do them yourself to understand the material. These marks can move you from a lower grade to a higher one.`;
-    }
-
-    // Thank you
-    if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
-      return `You're welcome! I'm here whenever you need help with your CGPA or study strategies.`;
-    }
-
-    // Default - Redirect to scope
-    return `I specialize in CGPA tracking and study tips. I can help you with: checking your CGPA, understanding the UNN grading system, study strategies, exam preparation, time management, and motivation. What would you like to know?`;
+    // Default
+    return `I can help with CGPA calculations, study plans, and UNN grading info. What do you need?`;
   };
 
   const speakMessage = (text: string) => {
     if ('speechSynthesis' in window && voiceEnabled) {
-      // Cancel any ongoing speech first
       window.speechSynthesis.cancel();
-      
-      // Replace decimal points in numbers with "point" for proper pronunciation
       const processedText = text.replace(/(\d+)\.(\d+)/g, (match, before, after) => {
         const afterDigits = after.split('').join(' ');
         return `${before} point ${afterDigits}`;
       });
-
-      // Create single utterance for the entire message
       const utterance = new SpeechSynthesisUtterance(processedText);
-      utterance.rate = 0.9; // Slightly slower for clarity
+      utterance.rate = 0.9;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
-
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -268,9 +243,9 @@ export default function AIChat() {
     }
 
     try {
-      // Request microphone permission first
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop()); // Stop the stream after permission is granted
+      await navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        stream.getTracks().forEach(track => track.stop());
+      });
       
       const recognition = new (window as any).webkitSpeechRecognition();
       recognition.continuous = false;
@@ -280,79 +255,39 @@ export default function AIChat() {
 
       recognition.onstart = () => {
         setIsListening(true);
-        toast({
-          title: 'Listening...',
-          description: 'Speak now',
-        });
+        toast({ title: 'Listening...', description: 'Speak now' });
       };
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
         
-        // Auto-send the message after voice input
         setTimeout(() => {
-          const userMessage: Message = {
-            id: crypto.randomUUID(),
-            role: 'user',
-            content: transcript,
-            timestamp: new Date(),
-          };
-
-          const assistantResponse: Message = {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: generateResponse(transcript),
-            timestamp: new Date(),
-          };
-
+          const userMessage: Message = { id: crypto.randomUUID(), role: 'user', content: transcript, timestamp: new Date() };
+          const assistantResponse: Message = { id: crypto.randomUUID(), role: 'assistant', content: generateResponse(transcript), timestamp: new Date() };
           setMessages((prev) => [...prev, userMessage, assistantResponse]);
-          
-          if (voiceEnabled) {
-            speakMessage(assistantResponse.content);
-          }
-
+          if (voiceEnabled) speakMessage(assistantResponse.content);
           setInput('');
         }, 500);
         
-        toast({
-          title: 'Heard you!',
-          description: `"${transcript}"`,
-        });
+        toast({ title: 'Heard you!', description: `"${transcript}"` });
       };
 
       recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        
         let errorMsg = 'Voice input error. Please try again.';
-        if (event.error === 'no-speech') {
-          errorMsg = 'No speech detected. Please try again.';
-        } else if (event.error === 'audio-capture') {
-          errorMsg = 'Microphone not detected. Check your device.';
-        } else if (event.error === 'not-allowed') {
-          errorMsg = 'Microphone access denied. Enable it in browser settings.';
-        }
-        
-        toast({
-          title: 'Voice Error',
-          description: errorMsg,
-          variant: 'destructive',
-        });
+        if (event.error === 'no-speech') errorMsg = 'No speech detected.';
+        else if (event.error === 'audio-capture') errorMsg = 'Microphone not detected.';
+        else if (event.error === 'not-allowed') errorMsg = 'Microphone access denied.';
+        toast({ title: 'Voice Error', description: errorMsg, variant: 'destructive' });
       };
 
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
+      recognition.onend = () => setIsListening(false);
       recognition.start();
       recognitionRef.current = recognition;
     } catch (error) {
-      console.error('Microphone access error:', error);
-      setIsListening(false);
       toast({
         title: 'Microphone Access Required',
-        description: 'Please enable microphone access in your browser settings to use voice input.',
+        description: 'Please enable microphone access in your browser settings.',
         variant: 'destructive',
       });
     }
@@ -360,7 +295,6 @@ export default function AIChat() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-3">
@@ -385,46 +319,18 @@ export default function AIChat() {
           </div>
         </div>
       </header>
-
-      {/* Messages */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-            >
+            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
               <div className="flex flex-col gap-2 max-w-[80%]">
-                <Card
-                  className={`p-4 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-card'
-                  }`}
-                >
+                <Card className={`p-4 ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className="text-xs opacity-70 mt-2">
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+                  <p className="text-xs opacity-70 mt-2">{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </Card>
                 {message.role === 'assistant' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="self-end"
-                    onClick={() => {
-                      saveResponse(message.content);
-                      toast({
-                        title: 'Saved!',
-                        description: 'Response saved for later reference',
-                      });
-                    }}
-                  >
-                    <Bookmark className="w-4 h-4 mr-1" />
-                    Save
+                  <Button variant="ghost" size="sm" className="self-end" onClick={() => { saveResponse(message.content); toast({ title: 'Saved!', description: 'Response saved.' }); }}>
+                    <Bookmark className="w-4 h-4 mr-1" /> Save
                   </Button>
                 )}
               </div>
@@ -433,8 +339,6 @@ export default function AIChat() {
           <div ref={messagesEndRef} />
         </div>
       </main>
-
-      {/* Input */}
       <div className="border-t border-border bg-card">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex gap-2">
@@ -445,12 +349,7 @@ export default function AIChat() {
               placeholder="Ask me anything about your academics..."
               className="flex-1"
             />
-            <Button
-              variant={isListening ? 'default' : 'outline'}
-              size="icon"
-              onClick={toggleVoiceInput}
-              className={isListening ? 'animate-glow-pulse' : ''}
-            >
+            <Button variant={isListening ? 'default' : 'outline'} size="icon" onClick={toggleVoiceInput} className={isListening ? 'animate-glow-pulse' : ''}>
               {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </Button>
             <Button onClick={handleSendMessage}>
@@ -459,8 +358,6 @@ export default function AIChat() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
       <footer className="py-3 text-center border-t border-border">
         <p className="text-xs text-muted-foreground">Powered by NoskyTech</p>
       </footer>
