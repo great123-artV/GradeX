@@ -1,7 +1,6 @@
 // Gradex AI - Academic Assistant for UNN Students
 // Built and developed by NoskyTech
-
-const getRandomItem = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+// Natural conversational tone without emojis or symbols
 
 interface UserContext {
   name: string;
@@ -10,308 +9,222 @@ interface UserContext {
   currentGPA: number;
 }
 
-// Emotional detection keywords
-const emotionKeywords = {
-  sad: ['sad', 'depressed', 'disappointed', 'down', 'unhappy', 'failed', 'failing', 'lower than expected', 'bad result'],
-  frustrated: ['frustrated', 'angry', 'annoyed', 'stressed', 'tired', 'fed up', 'hate', 'difficult'],
-  confused: ['confused', 'don\'t understand', 'help me', 'lost', 'unclear', 'what does', 'how do i', 'explain'],
-  happy: ['happy', 'excited', 'great', 'amazing', 'passed', 'good result', 'improved', 'better'],
-};
+type Mood = 'sad' | 'angry' | 'confused' | 'happy' | 'tired' | 'stressed' | 'excited' | 'neutral';
 
-function detectEmotion(input: string): 'sad' | 'frustrated' | 'confused' | 'happy' | null {
-  const lowerInput = input.toLowerCase();
-  for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-    if (keywords.some(keyword => lowerInput.includes(keyword))) {
-      return emotion as 'sad' | 'frustrated' | 'confused' | 'happy';
-    }
+function detectMood(message: string): Mood {
+  const lower = message.toLowerCase();
+  
+  if (lower.includes('confused') || lower.includes('don\'t understand') || lower.includes('help me') || lower.includes('what is') || lower.includes('how do') || lower.includes('explain') || lower.includes('lost') || lower.includes('unclear')) {
+    return 'confused';
   }
-  return null;
+  if (lower.includes('sad') || lower.includes('failed') || lower.includes('disappointed') || lower.includes('depressed') || lower.includes('down') || lower.includes('bad') || lower.includes('unhappy')) {
+    return 'sad';
+  }
+  if (lower.includes('angry') || lower.includes('frustrated') || lower.includes('annoyed') || lower.includes('hate') || lower.includes('stupid') || lower.includes('unfair') || lower.includes('fed up')) {
+    return 'angry';
+  }
+  if (lower.includes('tired') || lower.includes('exhausted') || lower.includes('stressed') || lower.includes('overwhelmed') || lower.includes('too much') || lower.includes('pressure')) {
+    return 'stressed';
+  }
+  if (lower.includes('happy') || lower.includes('great') || lower.includes('awesome') || lower.includes('passed') || lower.includes('good') || lower.includes('thanks') || lower.includes('thank you')) {
+    return 'happy';
+  }
+  if (lower.includes('excited') || lower.includes('can\'t wait') || lower.includes('finally') || lower.includes('amazing')) {
+    return 'excited';
+  }
+  
+  return 'neutral';
 }
 
-export function generateWelcomeMessage(user: UserContext): string {
-  const templates = [
-    `Hello ${user.name}! 👋 I'm Gradex AI, your friendly academic companion built by NoskyTech.\n\nYour current CGPA is ${user.cgpa.toFixed(2)}. I'm here to help you:\n\n• Track and calculate your GPA/CGPA\n• Understand UNN grading policies\n• Get personalized study tips\n• Navigate academic challenges\n\nWhat would you like to explore today?`,
-    
-    `Welcome back, ${user.name}! 🎓\n\nI'm Gradex AI, developed by NoskyTech to support UNN students like you.\n\nQuick snapshot:\n• Your CGPA: ${user.cgpa.toFixed(2)}\n${user.carryoversCount > 0 ? `• Carryovers: ${user.carryoversCount} course(s) to clear\n` : '• No carryovers! Great job!\n'}\nHow can I assist you today? Feel free to ask about CGPA calculations, study strategies, or any academic concerns.`,
-    
-    `Hi ${user.name}! Great to see you! 🌟\n\nI'm Gradex AI — your dedicated academic assistant created by NoskyTech for UNN students.\n\nLet's check in:\n• Current CGPA: ${user.cgpa.toFixed(2)}\n\nI can help with GPA/CGPA calculations, study planning, understanding grades, and more. Don't hesitate to ask anything — I'm here for you!`,
-  ];
-  return getRandomItem(templates);
+function hasSlang(message: string): boolean {
+  const slangWords = ['wetin', 'abeg', 'sha', 'omo', 'guy', 'bro', 'na', 'dey', 'wahala', 'how far', 'bros', 'gist', 'jare', 'sef', 'shey', 'comot', 'chop', 'e be like', 'nor worry', 'make i'];
+  const lower = message.toLowerCase();
+  return slangWords.some(word => lower.includes(word));
 }
 
-export function generateGreeting(user: UserContext): string {
-  const greetings = [
-    `Hello ${user.name}! 😊 I'm delighted to help you today.\n\nHere are some things I can assist with:\n• Calculate your GPA or CGPA\n• Explain UNN grading policies\n• Create a personalized study plan\n• Guide you on who to meet for academic issues\n\nWhat's on your mind?`,
-    
-    `Hi there, ${user.name}! 👋 Welcome!\n\nAs your academic companion, I'm ready to support you with:\n• Understanding your grades and CGPA\n• Planning your study sessions\n• Navigating UNN academic procedures\n\nFeel free to ask me anything about your academics!`,
-    
-    `Hey ${user.name}! Great to have you here! 🎓\n\nI'm Gradex AI, built by NoskyTech to make your academic journey smoother.\n\nQuick options:\n1. Check your CGPA status\n2. Get study tips\n3. Understand grading policies\n4. Ask about academic procedures\n\nWhat would you like to explore?`,
-  ];
-  return getRandomItem(greetings);
-}
-
-export function generateCGPAResponse(cgpa: number, name: string): string {
-  if (cgpa === 0) {
-    return `Hey ${name}, it looks like you haven't added any courses yet! 📚\n\nOnce you add your courses with their scores, I'll be able to:\n• Calculate your exact CGPA\n• Show you where you stand academically\n• Give personalized improvement tips\n\nWould you like me to explain how the UNN grading system works while you set up your courses?`;
-  }
-
-  const responses = {
-    firstClass: [
-      `Incredible work, ${name}! 🌟🎉\n\nYour CGPA is ${cgpa.toFixed(2)} — that's First Class honors territory!\n\n**What this means:**\n• You're among the top performers at UNN\n• You've maintained exceptional consistency\n• Graduate school and scholarship opportunities await\n\n**Tips to maintain this:**\n• Don't get complacent — keep your study habits\n• Consider mentoring other students\n• Start thinking about research opportunities\n\nYou're doing amazing! Keep it up! 💪`,
-      
-      `Outstanding, ${name}! 🏆\n\nWith a CGPA of ${cgpa.toFixed(2)}, you're in First Class category!\n\nThis achievement reflects:\n• Excellent understanding of your courses\n• Strong time management skills\n• Dedication to your studies\n\nRemember: Consistency is key. Don't let up now — you're building something great for your future!`,
-    ],
-    secondClassUpper: [
-      `Great job, ${name}! 👏\n\nYour CGPA is ${cgpa.toFixed(2)} — a solid Second Class Upper!\n\n**What this means:**\n• You're performing above average\n• Most employers and grad schools value this highly\n• You have room to push into First Class if you want\n\n**To improve further:**\n• Identify courses where you scored below 60\n• Focus extra effort on your weaker subjects\n• Consider forming study groups\n\nYou're on a strong path! Want me to suggest a strategy to push higher?`,
-      
-      `Well done, ${name}! 🎯\n\nA CGPA of ${cgpa.toFixed(2)} puts you in Second Class Upper — that's commendable!\n\nThis shows:\n• Good academic discipline\n• Solid understanding across subjects\n• Potential for even greater heights\n\nWould you like tips on how to push into First Class territory?`,
-    ],
-    secondClassLower: [
-      `You're making progress, ${name}! 📈\n\nYour CGPA is ${cgpa.toFixed(2)} — Second Class Lower division.\n\n**The good news:**\n• You're passing and moving forward\n• There's clear room for improvement\n• Many successful people started here\n\n**Here's how to improve:**\n1. Review courses where you scored below 50\n2. Attend all tutorials and lectures\n3. Practice with past questions regularly\n4. Form study groups with serious students\n\nEvery semester is a fresh opportunity. Would you like me to help create a targeted improvement plan?`,
-      
-      `Hey ${name}, let's talk about your ${cgpa.toFixed(2)} CGPA. 📊\n\nYou're in Second Class Lower, and that's okay — it's a starting point, not a destination.\n\n**Action steps:**\n• Identify your 3 weakest courses\n• Dedicate extra study time to them\n• Use active recall and past questions\n• Don't skip classes or tutorials\n\nRemember: Improvement is a gradual process. Shall I help you build a study strategy?`,
-    ],
-    pass: [
-      `${name}, let's work on this together. 💪\n\nYour CGPA is ${cgpa.toFixed(2)}. I know this might not be where you want to be, but here's the truth: **it's not the end.**\n\n**Understanding your situation:**\n• A CGPA below 2.5 means you need focused improvement\n• This doesn't define your worth or potential\n• Many students have recovered from similar positions\n\n**Practical steps:**\n1. Clear any carryover courses first\n2. Focus on understanding, not just passing\n3. Attend all classes and tutorials\n4. Study consistently, not just before exams\n5. Seek help from lecturers during office hours\n\nI believe in you. Would you like to talk about specific courses or create a recovery plan?`,
-      
-      `I see your CGPA is ${cgpa.toFixed(2)}, ${name}. Let's address this honestly but supportively. 🤝\n\nThis is a challenging position, but it's recoverable. Here's what matters:\n\n**Immediate priorities:**\n• Clear carryovers — they're dragging your CGPA\n• Understand why you struggled (study habits? attendance? understanding?)\n• Create a realistic study schedule\n\n**Remember:**\n• Your CGPA doesn't define your intelligence\n• Many successful professionals had rocky academic starts\n• The key is to learn from setbacks\n\nI'm here to help. What specific challenges are you facing?`,
-    ],
-  };
-
-  if (cgpa >= 4.5) return getRandomItem(responses.firstClass);
-  if (cgpa >= 3.5) return getRandomItem(responses.secondClassUpper);
-  if (cgpa >= 2.5) return getRandomItem(responses.secondClassLower);
-  return getRandomItem(responses.pass);
-}
-
-export function generateGPAResponse(gpa: number, name: string): string {
-  if (gpa === 0) {
-    return `${name}, it seems you haven't added any courses for this semester yet. 📝\n\nOnce you add your courses, I'll calculate your semester GPA and show you how it affects your overall CGPA.\n\nWould you like me to explain the difference between GPA and CGPA?`;
-  }
-
-  return `${name}, your GPA for this semester is ${gpa.toFixed(2)}! 📊\n\n**What this means:**\n• GPA is your performance for this semester only\n• It combines with previous semesters to form your CGPA\n${gpa >= 4.0 ? '• Excellent semester! This will boost your CGPA 🎉' : gpa >= 3.0 ? '• Solid performance! Keep building on this.' : '• There\'s room for improvement next semester.'}\n\nWould you like tips on how to maintain or improve this?`;
-}
-
-export function generateCarryoverResponse(count: number, name: string): string {
-  if (count === 0) {
-    return `Great news, ${name}! 🎉\n\nYou have **no carryover courses**! This is fantastic because:\n\n• Your CGPA isn't being weighed down\n• You can focus on current courses\n• You're on track for smooth progression\n\nKeep up this excellent work! Would you like some tips on maintaining this streak?`;
-  }
-
-  const responses = [
-    `${name}, you have ${count} carryover course${count > 1 ? 's' : ''}. Let's tackle this together. 💪\n\n**Why carryovers matter:**\n• They affect your CGPA significantly\n• Clearing them should be a priority\n• The longer you wait, the harder it gets\n\n**Strategy to clear them:**\n1. Register for them next semester\n2. Get past questions and study materials early\n3. Attend all classes — don't repeat past mistakes\n4. Study in groups if possible\n5. Meet the lecturer for clarification\n\n**Who to meet:**\n• Course Adviser — for registration guidance\n• Department Secretary — for paperwork\n\nYou can clear these! Need specific study tips for any course?`,
-    
-    `I see you have ${count} carryover${count > 1 ? 's' : ''}, ${name}. Here's how we handle this: 📋\n\n**First, don't panic.** Carryovers are common and clearable.\n\n**Action plan:**\n• Prioritize them in course registration\n• Start studying early — not last minute\n• Understand why you failed (attendance? understanding? exam prep?)\n• Address the root cause\n\n**Resources to use:**\n• Past questions (very important!)\n• Tutorial sessions\n• Study groups\n• Office hours with lecturers\n\nWould you like me to help create a study plan for clearing these?`,
-  ];
-  return getRandomItem(responses);
-}
-
-export function generateEmotionalResponse(emotion: string, name: string): string {
-  const responses = {
-    sad: [
-      `${name}, I can sense you're feeling down, and that's completely okay. 💙\n\nAcademic struggles can be really tough, but I want you to know:\n\n• Your grades don't define your worth\n• Setbacks are temporary — they're not your story\n• Many successful people faced similar challenges\n\n**Here's what might help:**\n1. Take a short break to clear your mind\n2. Talk to someone you trust\n3. Then, let's create a realistic plan together\n\nRemember: You reached out for help — that takes courage. What's troubling you most right now?`,
-      
-      `I hear you, ${name}. It's okay to feel disappointed. 🤗\n\nBut let me remind you:\n• One bad result doesn't erase your potential\n• Every semester is a fresh start\n• You're not alone in this\n\nLet's focus on what we can control:\n• Understanding what went wrong\n• Building better study habits\n• Taking it one step at a time\n\nI'm here for you. Want to talk about what happened?`,
-    ],
-    frustrated: [
-      `I understand the frustration, ${name}. University can be incredibly stressful. 😤➡️😌\n\n**First, take a breath.** Your feelings are valid.\n\n**Let's break this down:**\n• What specifically is frustrating you?\n• Is it a particular course? The system? Time management?\n\nOnce we identify the problem, we can find solutions together.\n\n**Quick stress relievers:**\n• Step away for 10 minutes\n• Do some light exercise\n• Talk to a friend\n\nI'm here to help you work through this. What's the main issue?`,
-      
-      `${name}, academic stress is real and your frustration is understandable. 🌟\n\nLet's channel that energy productively:\n\n**Immediate steps:**\n1. Write down what's bothering you\n2. Identify what you can control\n3. Focus on one problem at a time\n\n**Remember:**\n• You've overcome challenges before\n• Help is available — you're using it right now!\n• This feeling will pass\n\nTell me more about what's going on. Let's find solutions together.`,
-    ],
-    confused: [
-      `No worries, ${name}! Let me help clarify things for you. 🔍\n\nConfusion is just the first step to understanding. Here's what we can do:\n\n1. **Tell me exactly what's unclear**\n2. **I'll break it down step by step**\n3. **Ask follow-up questions until it clicks**\n\nThere are no silly questions here. What would you like me to explain?\n\n**Common topics I can clarify:**\n• How GPA/CGPA is calculated\n• UNN grading system\n• Course registration process\n• Who to meet for various issues`,
-      
-      `Let's clear up this confusion together, ${name}! 💡\n\nI'll explain things in simple terms:\n\n**Just tell me:**\n• What topic is confusing?\n• What do you already understand?\n• What specific part is unclear?\n\nI'll break it down until it makes sense. No rush — we'll go at your pace!`,
-    ],
-    happy: [
-      `That's wonderful, ${name}! 🎉🎊\n\nYour positive energy is contagious! It's great to celebrate wins, big or small.\n\n**Keep this momentum going by:**\n• Documenting what worked for you\n• Maintaining your good habits\n• Helping a classmate who might be struggling\n\nSuccess breeds success! What achievement are you celebrating?`,
-      
-      `Love the energy, ${name}! 🌟\n\nCelebrating achievements is important — it motivates you to keep going!\n\n**While you're feeling great:**\n• Set your next goal\n• Thank anyone who helped you\n• Remember this feeling when tough times come\n\nCongratulations! What's the good news?`,
-    ],
-  };
-
-  return getRandomItem(responses[emotion as keyof typeof responses] || responses.confused);
-}
-
-export function generateAcademicGuidance(input: string, name: string): string {
-  const lowerInput = input.toLowerCase();
-
-  if (lowerInput.includes('lost result') || lowerInput.includes('missing result')) {
-    return `${name}, here's how to handle missing results: 📋\n\n**Step-by-step guide:**\n\n1. **First, visit your Course Adviser**\n   • They have access to departmental records\n   • Bring your course registration form as evidence\n\n2. **If unresolved, go to the Departmental Office**\n   • Meet the department secretary\n   • File a formal complaint if needed\n\n3. **Then try Exams and Records**\n   • Located near Senate Building\n   • They handle result compilation\n\n4. **As a last resort**\n   • Meet the HOD with documentation\n   • Write a formal letter explaining the issue\n\n**Documents to bring:**\n• Registration printout\n• ID card\n• Any exam evidence\n\nWould you like more details on any of these steps?`;
-  }
-
-  if (lowerInput.includes('wrong grade') || lowerInput.includes('incorrect grade') || lowerInput.includes('grade error')) {
-    return `${name}, here's how to address grade errors: 📝\n\n**Correction process:**\n\n1. **Meet the course lecturer first**\n   • Politely explain the discrepancy\n   • Bring your marked script if possible\n\n2. **If lecturer agrees there's an error:**\n   • They'll write a grade correction letter\n   • Submit to HOD for approval\n\n3. **Then to Exams and Records**\n   • With the approved correction letter\n   • They update the official records\n\n**Important tips:**\n• Be respectful and patient\n• Keep copies of all documents\n• Follow up regularly\n\nThis process can take 2-4 weeks. Start as early as possible!`;
-  }
-
-  if (lowerInput.includes('portal') || lowerInput.includes('login') || lowerInput.includes('ict')) {
-    return `${name}, for portal and ICT issues: 💻\n\n**Where to go:**\n• UNN ICT Centre (beside CT Building)\n\n**Common issues they handle:**\n• Password reset\n• Portal login problems\n• Course registration errors\n• Payment verification\n\n**What to bring:**\n• Your UNN ID card\n• Admission letter (for freshers)\n• Payment receipt (if payment-related)\n\n**Tips:**\n• Go early — queues can be long\n• Be specific about your problem\n• Note down any reference numbers they give\n\nIs there a specific portal issue you're facing?`;
-  }
-
-  if (lowerInput.includes('deadline') || lowerInput.includes('missed') || lowerInput.includes('late')) {
-    return `${name}, missed deadlines can be stressful, but there might be options: ⏰\n\n**Immediate steps:**\n\n1. **Contact the relevant authority ASAP**\n   • For course registration: Course Adviser\n   • For assignments: Course lecturer\n   • For payments: Bursary Department\n\n2. **Prepare your explanation**\n   • Be honest about why you missed it\n   • Have supporting documents if applicable\n\n3. **Request for consideration**\n   • Ask about late submission policies\n   • Some departments allow appeals\n\n**Key contacts:**\n• Course Adviser — most registration issues\n• HOD — for serious cases\n• Dean's Office — for faculty-wide deadlines\n\nWhat specific deadline did you miss?`;
-  }
-
-  // Default academic navigation
-  return `${name}, for academic issues, here's your navigation guide: 🗺️\n\n**Who handles what:**\n\n📚 **Course Adviser**\n• Course registration guidance\n• Academic advice\n• First point of contact for most issues\n\n👔 **Head of Department (HOD)**\n• Serious academic matters\n• Appeals and special requests\n• Department-level decisions\n\n📋 **Departmental Secretary**\n• Paperwork and documentation\n• Verification letters\n• Administrative processes\n\n🏛️ **Faculty Office**\n• Cross-departmental issues\n• Faculty-wide policies\n\n📊 **Exams and Records**\n• Result issues\n• Transcript requests\n• Grade corrections\n\nWhat specific issue do you need help with?`;
-}
-
-export function generateStudyTips(name: string): string {
-  const tips = [
-    `${name}, here's a powerful study strategy to boost your grades: 📚💪\n\n**The Active Recall Method:**\n\n1. **Don't just read — test yourself**\n   • After reading a topic, close the book\n   • Write down everything you remember\n   • Check what you missed\n\n2. **Use past questions religiously**\n   • They show you exam patterns\n   • Practice under timed conditions\n   • Review your mistakes thoroughly\n\n3. **Spaced repetition**\n   • Review notes: Day 1, Day 3, Day 7, Day 14\n   • This builds long-term memory\n\n4. **Teach someone else**\n   • If you can explain it, you understand it\n   • Form study groups\n\n**Daily routine suggestion:**\n• Morning: New material (2 hours)\n• Afternoon: Practice questions (1.5 hours)\n• Evening: Review and self-test (1 hour)\n\nWould you like a specific study plan for exam preparation?`,
-
-    `Here are study strategies that actually work, ${name}: 🎯\n\n**The Pomodoro Technique:**\n• Study for 25 minutes\n• Take a 5-minute break\n• After 4 sessions, take a 15-30 minute break\n\n**Environment matters:**\n• Find a quiet, dedicated study space\n• Remove phone distractions\n• Good lighting and ventilation\n\n**For difficult courses:**\n1. Break topics into smaller chunks\n2. Start with what you find easiest\n3. Gradually tackle harder parts\n4. Ask lecturers during office hours\n\n**Memory techniques:**\n• Create mnemonics for lists\n• Draw diagrams and flowcharts\n• Summarize in your own words\n\n**Exam preparation:**\n• Start 2-3 weeks early\n• Focus on past question patterns\n• Don't cram the night before\n\nNeed tips for a specific course?`,
-
-    `${name}, let me share some proven study wisdom: 🌟\n\n**The 3-Phase Study System:**\n\n**Phase 1: Understanding (40% of time)**\n• Read and understand concepts\n• Watch explanatory videos if needed\n• Ask questions until clear\n\n**Phase 2: Practice (40% of time)**\n• Solve problems and past questions\n• Apply what you learned\n• Identify weak areas\n\n**Phase 3: Review (20% of time)**\n• Revisit difficult topics\n• Create summary notes\n• Test yourself\n\n**Time management:**\n• Use a planner or calendar\n• Set specific study goals daily\n• Balance study with rest\n\n**Health matters too:**\n• Get 7-8 hours of sleep\n• Exercise regularly\n• Eat well during exam periods\n\nWant me to help create a personalized study schedule?`,
-  ];
-
-  return getRandomItem(tips);
-}
-
-export function generateGradingExplanation(): string {
-  return `Here's everything you need to know about UNN's grading system: 📊\n\n**The 5-Point Scale:**\n\n| Score | Grade | Points |\n|-------|-------|--------|\n| 70-100 | A | 5.0 |\n| 60-69 | B | 4.0 |\n| 50-59 | C | 3.0 |\n| 45-49 | D | 2.0 |\n| 40-44 | E | 1.0 |\n| 0-39 | F | 0.0 |\n\n**Degree Classification:**\n• First Class: 4.50 - 5.00\n• Second Class Upper: 3.50 - 4.49\n• Second Class Lower: 2.50 - 3.49\n• Third Class: 1.50 - 2.49\n• Pass: 1.00 - 1.49\n\n**Important terms:**\n• **GPA**: Grade Point Average for one semester\n• **CGPA**: Cumulative GPA across all semesters\n• **Carryover**: Course scored below 40 (must retake)\n\n**Formula:**\nGPA = Total Grade Points ÷ Total Credit Units\n\nWould you like me to calculate your GPA/CGPA?`;
-}
-
-export function generateDefaultResponse(name: string): string {
-  const responses = [
-    `${name}, I'm here to help with your academics! 🎓\n\nHere are some things I can assist with:\n\n• **\"What's my CGPA?\"** — Check your current standing\n• **\"Study tips\"** — Get effective study strategies\n• **\"Calculate CGPA\"** — Detailed GPA/CGPA calculation\n• **\"Carryovers\"** — Check and plan for carryover courses\n• **\"UNN grading\"** — Understand the grading system\n• **\"Who should I meet?\"** — Navigate UNN offices\n\nOr just tell me what's on your mind — I'm listening!`,
-
-    `I'm Gradex AI, your academic companion built by NoskyTech! 💡\n\nNot sure I caught that, ${name}. Let me suggest some options:\n\n1. Ask about your CGPA or GPA\n2. Request study tips and strategies\n3. Understand UNN grading policies\n4. Get guidance on academic procedures\n5. Calculate grades step-by-step\n\nWhat would you like to explore?`,
-
-    `Hey ${name}! Let me make sure I help you properly. 😊\n\nCould you tell me more about what you need? I specialize in:\n\n📚 **Academic calculations** — GPA, CGPA, grade predictions\n📋 **UNN policies** — Grading, carryovers, procedures\n🎯 **Study strategies** — Tips to improve performance\n🗺️ **Navigation** — Who to meet for different issues\n\nFeel free to ask in any way you're comfortable with!`,
-  ];
-
-  return getRandomItem(responses);
-}
-
-export function generateRefusalResponse(name: string): string {
-  return `${name}, I understand the pressure of exams, but I can't provide exam answers or leaks. 🚫\n\nHere's why and what I CAN do instead:\n\n**Why I can't help with that:**\n• It's academic dishonesty\n• It undermines your real learning\n• It could get you expelled\n\n**What I CAN help with:**\n• Create a targeted study plan for your exams\n• Explain difficult topics clearly\n• Show you how to use past questions effectively\n• Provide memory techniques\n• Help you prioritize what to study\n\n**Better approach:**\n• Focus on understanding, not memorizing\n• Practice with past questions (these are legitimate!)\n• Form study groups with classmates\n\nWould you like me to help you prepare properly instead?`;
-}
-
-export function generateResponse(
-  userInput: string,
-  context: UserContext,
-  calculateCGPAFn: (courses: Array<{ code: string; units: number; score: number }>, prior: { cgpa: number; units: number }) => any
-): string {
-  const lowerInput = userInput.toLowerCase();
-  const { name, cgpa, carryoversCount, currentGPA } = context;
-
-  // Check for emotional state first
-  const emotion = detectEmotion(lowerInput);
-  if (emotion && (lowerInput.length > 15 || ['sad', 'frustrated'].includes(emotion))) {
-    return generateEmotionalResponse(emotion, name);
-  }
-
-  // Greetings
-  if (lowerInput.match(/^(hi|hello|hey|greetings|good\s*(morning|afternoon|evening))[\s!.]*$/i)) {
-    return generateGreeting(context);
-  }
-
-  // CGPA queries
-  if (lowerInput.includes('my cgpa') || lowerInput.includes('what is my cgpa') || lowerInput.includes('cgpa status')) {
-    return generateCGPAResponse(cgpa, name);
-  }
-
-  // GPA queries
-  if ((lowerInput.includes('gpa') && !lowerInput.includes('cgpa')) || lowerInput.includes('semester gpa')) {
-    return generateGPAResponse(currentGPA, name);
-  }
-
-  // Carryover queries
-  if (lowerInput.includes('carryover') || lowerInput.includes('carry over') || lowerInput.includes('failed course')) {
-    return generateCarryoverResponse(carryoversCount, name);
-  }
-
-  // Academic navigation
-  if (lowerInput.includes('who to meet') || lowerInput.includes('lost result') || lowerInput.includes('missing result') ||
-      lowerInput.includes('deadline') || lowerInput.includes('portal') || lowerInput.includes('ict') ||
-      lowerInput.includes('wrong grade') || lowerInput.includes('grade error')) {
-    return generateAcademicGuidance(lowerInput, name);
-  }
-
-  // Grading system
-  if (lowerInput.includes('grading') || lowerInput.includes('grade system') || lowerInput.includes('how does grading')) {
-    return generateGradingExplanation();
-  }
-
-  // Study tips
-  if (lowerInput.includes('study') || lowerInput.includes('help me plan') || lowerInput.includes('tips') || 
-      lowerInput.includes('how to improve') || lowerInput.includes('boost') || lowerInput.includes('prepare')) {
-    return generateStudyTips(name);
-  }
-
-  // CGPA Calculation
-  if (lowerInput.includes('calculate') && (lowerInput.includes('cgpa') || lowerInput.includes('gpa'))) {
-    const courseRegex = /(\w+\d+)\s*\((\d+)\s*u(?:nits?)?,\s*(\d+)\)/g;
-    const priorRegex = /prior cgpa:\s*(\d+\.?\d*)\s*across\s*(\d+)\s*units/gi;
-
-    const courses: Array<{ code: string; units: number; score: number }> = [];
-    let match;
-    while ((match = courseRegex.exec(lowerInput)) !== null) {
-      courses.push({
-        code: match[1].toUpperCase(),
-        units: parseInt(match[2], 10),
-        score: parseInt(match[3], 10),
-      });
-    }
-
-    const priorMatch = priorRegex.exec(lowerInput);
-    const prior = priorMatch
-      ? { cgpa: parseFloat(priorMatch[1]), units: parseInt(priorMatch[2], 10) }
-      : { cgpa: 0, units: 0 };
-
-    if (courses.length === 0) {
-      return `${name}, I'd love to calculate your CGPA! 🧮\n\n**Please provide courses in this format:**\n\`CODE (X units, Y score)\`\n\n**Example:**\n"Calculate my CGPA: MTH101 (3 units, 65) CHM101 (4 units, 72) PHY101 (3 units, 58)"\n\n**To include previous CGPA:**\n"Prior CGPA: 2.85 across 60 units"\n\nGive it a try!`;
-    }
-
-    const result = calculateCGPAFn(courses, prior);
-    const steps = result.steps.join('\n');
-    const finalCGPA = result.cumulativeCGPADisplay;
-
-    let interpretation = '';
-    let emoji = '';
-    if (finalCGPA >= 4.5) {
-      interpretation = `This puts you in **First Class** — outstanding academic performance! 🏆`;
-      emoji = '🌟';
-    } else if (finalCGPA >= 3.5) {
-      interpretation = `You're in **Second Class Upper** — strong academic standing! 👏`;
-      emoji = '🎯';
-    } else if (finalCGPA >= 2.5) {
-      interpretation = `You're in **Second Class Lower** — steady progress, room to grow! 📈`;
-      emoji = '💪';
-    } else {
-      interpretation = `This is a **Pass** grade. Let's work on improvement strategies. 📚`;
-      emoji = '🔄';
-    }
-
-    // Find lowest course for tip
-    const lowestCourse = courses.reduce((low, c) => c.score < low.score ? c : low, courses[0]);
-    const tip = `💡 **Tip:** Focus extra attention on ${lowestCourse.code} (scored ${lowestCourse.score}). Consider study groups, past questions, and office hours with the lecturer.`;
-
-    return `${name}, let me break down your CGPA calculation step by step: ${emoji}\n\n**Detailed Calculation:**\n${steps}\n\n---\n**Your New CGPA: ${finalCGPA}**\n\n${interpretation}\n\n${tip}\n\nWould you like study tips or have questions about improving?`;
-  }
-
-  // Refusal (Safety)
-  if (lowerInput.includes('exam answers') || lowerInput.includes('exam leaks') || lowerInput.includes('expo') ||
-      lowerInput.includes('cheat')) {
-    return generateRefusalResponse(name);
-  }
-
-  // Identity
-  if (lowerInput.includes('who made you') || lowerInput.includes('who built you') || lowerInput.includes('who created you') ||
-      lowerInput.includes('noskytech') || lowerInput.includes('your creator')) {
-    return `I'm Gradex AI, proudly built and developed by **NoskyTech**! 🚀\n\nMy purpose is to help UNN students like you, ${name}, navigate your academic journey.\n\n**What I can do:**\n• Calculate and explain GPA/CGPA\n• Provide study strategies\n• Guide you on UNN procedures\n• Offer emotional support when needed\n\nI'm your reliable academic companion. How can I help you today?`;
-  }
-
-  // Thank you
-  if (lowerInput.includes('thank') || lowerInput.includes('thanks')) {
-    const thankResponses = [
-      `You're welcome, ${name}! 😊 I'm always here to help. Is there anything else you'd like to know?`,
-      `Glad I could help, ${name}! 🌟 Don't hesitate to ask if you have more questions.`,
-      `Anytime, ${name}! That's what I'm here for. 💪 Good luck with your studies!`,
+function getMoodResponse(mood: Mood, hasUserSlang: boolean, name: string): string {
+  if (hasUserSlang) {
+    const slangResponses = [
+      `I hear you ${name} and I understand where you are coming from\n\nLet me help you sort this out`,
+      `Bros I feel you on this one\n\nNo wahala let me break it down for you`,
+      `I understand the matter well\n\nLet me guide you through it one step at a time`,
+      `No stress at all ${name}\n\nI go explain am well well for you`,
     ];
-    return getRandomItem(thankResponses);
+    return slangResponses[Math.floor(Math.random() * slangResponses.length)];
   }
 
-  // Default
-  return generateDefaultResponse(name);
+  switch (mood) {
+    case 'sad':
+      return `I can sense things are not easy right now ${name} and I want you to know that it is okay to feel this way\n\nYour feelings are valid and I am here to help you through this one step at a time`;
+    case 'angry':
+      return `I understand your frustration ${name} and I hear you completely\n\nLet us take a breath together and work through this calmly\n\nI am on your side`;
+    case 'confused':
+      return `No worries at all ${name}\n\nI will break this down slowly and clearly so it becomes easier for you to understand`;
+    case 'stressed':
+      return `I can tell you have a lot on your plate right now ${name}\n\nTake a deep breath\n\nLet us handle this slowly and figure out the best path forward together`;
+    case 'happy':
+      return `That is wonderful to hear ${name}\n\nI am genuinely glad things are going well for you`;
+    case 'excited':
+      return `I can feel the excitement ${name} and I love it\n\nI am here to help you make the most of this moment`;
+    default:
+      return '';
+  }
+}
+
+function generateCGPAExplanation(userContext: UserContext): string {
+  const { cgpa, carryoversCount, currentGPA, name } = userContext;
+  
+  if (cgpa === 0) {
+    return `I notice you have not added any courses yet ${name}\n\nOnce you add your courses with their grades I can help you calculate your CGPA and give you personalized advice on how to improve\n\nLet me quickly explain how the UNN grading system works\n\nIt is based on a five point scale where A gives you five points and B gives you four points and C gives you three points and D gives you two points and E gives you one point and F gives you zero points\n\nTo calculate your CGPA you multiply each course unit by the grade point you scored then add everything together and divide by the total number of units\n\nFor example if you have a three unit course where you scored B that is three multiplied by four which gives you twelve grade points\n\nWould you like me to walk you through adding your first course`;
+  }
+
+  let response = `Looking at your academic record ${name} your current CGPA is ${cgpa.toFixed(2)} on the five point scale`;
+  
+  if (currentGPA > 0 && currentGPA !== cgpa) {
+    response += `\n\nYour GPA for this current semester is ${currentGPA.toFixed(2)} which shows your performance for just this semester`;
+  }
+  
+  if (carryoversCount > 0) {
+    response += `\n\nI also see you have ${carryoversCount} carryover course${carryoversCount > 1 ? 's' : ''} which means you scored below forty marks in ${carryoversCount > 1 ? 'those courses' : 'that course'}\n\nI would strongly advise you to prioritize clearing ${carryoversCount > 1 ? 'these carryovers' : 'this carryover'} as soon as possible because they can affect your graduation timeline and overall CGPA`;
+  }
+  
+  if (cgpa >= 4.5) {
+    response += `\n\nYou are doing excellently well and you are firmly on track for a first class degree\n\nThis is the result of consistent hard work and dedication\n\nKeep maintaining your study habits and stay focused\n\nMany doors will open for you with this kind of performance including scholarships and graduate opportunities`;
+  } else if (cgpa >= 3.5) {
+    response += `\n\nYou are performing well and you are in the second class upper range which is a solid achievement\n\nWith a bit more focused effort especially on courses where you scored C or below you could push into first class territory\n\nWould you like me to suggest some strategies to help you make that jump`;
+  } else if (cgpa >= 2.5) {
+    response += `\n\nYou are in the second class lower range which is decent but there is definitely room for improvement\n\nThe good news is that with the right approach you can move up to second class upper\n\nI can suggest some practical strategies to help boost your grades if you are interested`;
+  } else if (cgpa >= 1.5) {
+    response += `\n\nYour CGPA is currently in the third class range\n\nI understand this might feel discouraging but I want you to know that there is always room for improvement\n\nMany students have turned things around from similar positions\n\nWould you like me to suggest some practical steps to help you raise your grades starting from next semester`;
+  } else {
+    response += `\n\nI can see your CGPA is quite low right now ${name} and I want you to know that this does not define you as a person or determine your future\n\nMany successful people had rocky academic starts\n\nThe important thing now is to understand what went wrong and create a solid plan to improve\n\nLet me help you figure out the best way forward`;
+  }
+  
+  return response;
+}
+
+function generateStudyTips(name: string): string {
+  const tips = [
+    `One thing that really helps ${name} is creating a consistent study schedule\n\nTry to study at the same time every day so your brain gets conditioned to focus during those hours\n\nIt does not have to be many hours\n\nEven two to three hours of focused study daily can make a massive difference over the course of a semester\n\nThe key is consistency not intensity`,
+    
+    `Active recall is one of the most effective study techniques backed by research ${name}\n\nInstead of just reading your notes passively try closing your book after each section and recalling what you just read\n\nThis forces your brain to actively retrieve the information which strengthens your memory significantly\n\nYou can also test yourself with questions or explain concepts out loud as if teaching someone else`,
+    
+    `Breaking your study sessions into focused chunks works really well ${name}\n\nStudy for about forty five minutes to an hour then take a short break of ten to fifteen minutes\n\nDuring the break step away from your desk stretch or take a short walk\n\nThis helps maintain your concentration and prevents the mental fatigue that comes from marathon study sessions`,
+    
+    `Past questions are your best friend when preparing for UNN exams ${name}\n\nMost lecturers tend to repeat questions or follow similar patterns year after year\n\nStudying past questions helps you understand what to expect and how to structure your answers\n\nTry to get at least five years worth of past questions for each course and practice answering them under timed conditions`,
+    
+    `Group study can be incredibly helpful but you need to be strategic about it ${name}\n\nFind serious minded course mates who are genuinely focused on learning not just socializing\n\nExplaining concepts to others is one of the best ways to reinforce your own understanding\n\nBut make sure the group stays focused and does not turn into a chat session`,
+    
+    `Understanding your learning style can make a big difference ${name}\n\nSome people learn best by reading while others learn by listening or by doing\n\nExperiment with different approaches\n\nTry reading notes then listening to audio explanations then teaching someone else\n\nFigure out what works best for you and lean into that`,
+  ];
+  
+  return tips[Math.floor(Math.random() * tips.length)];
+}
+
+function generateUNNGuidance(query: string, name: string): string {
+  const lower = query.toLowerCase();
+  
+  if (lower.includes('lost') && (lower.includes('result') || lower.includes('score'))) {
+    return `For missing or lost results ${name} here is exactly what you should do step by step\n\nFirst meet your course adviser and explain the situation\n\nYour course adviser has access to departmental records and can help verify if the results were properly recorded\n\nMake sure you bring your course registration form as evidence that you registered for the course\n\nIf the issue is not resolved at that level visit your departmental office and meet the department secretary\n\nThey can check the physical records and may direct you to the Exams and Records unit if necessary\n\nThe Exams and Records office is located near the Senate Building\n\nAlways keep copies of all your course registration documents safe as they serve as proof\n\nThis process can take some time so start early and follow up regularly`;
+  }
+  
+  if (lower.includes('wrong') && lower.includes('grade')) {
+    return `For wrong or incorrect grades ${name} you need to follow this process carefully\n\nFirst approach the lecturer who taught the course and explain the situation calmly and respectfully\n\nBring any evidence you have such as your marked script or continuous assessment scores\n\nIf the lecturer agrees there is an error they will write a grade correction letter\n\nThat letter needs to go to the Head of Department for approval\n\nOnce approved you take it to Exams and Records and they will update the official records\n\nIf the lecturer does not agree or cannot resolve it you can escalate to the exam officer in your department and then to the HOD if necessary\n\nAlways remain polite and patient throughout this process\n\nKeep copies of all documents and follow up regularly\n\nThese things can take two to four weeks so start as early as possible`;
+  }
+  
+  if (lower.includes('portal') || lower.includes('login') || lower.includes('password')) {
+    return `For portal issues ${name} including login problems password resets or any technical difficulties you need to visit the ICT Centre\n\nIt is located beside the CT building on campus\n\nThey handle all student portal related matters\n\nMake sure you go with your student ID card and any relevant documents like your admission letter if you are a fresher or payment receipts if the issue is payment related\n\nI recommend going early in the morning because the queues can get very long especially during registration periods\n\nBe specific about your problem when you get there and note down any reference numbers they give you for follow up`;
+  }
+  
+  if (lower.includes('carryover') || lower.includes('carry over')) {
+    return `Carryover courses ${name} are courses where you scored below forty marks\n\nYou will need to re register for these courses in a future semester and retake the exams\n\nIt is very important to prioritize clearing carryovers because having too many can affect your eligibility for graduation and will keep dragging your CGPA down\n\nMy advice is to focus on your carryovers early in the semester\n\nAttend all the classes even if you feel you already know the material\n\nGet past questions specifically for that course and understand why you failed the first time\n\nIf you are struggling with the course content consider getting extra tutorials or finding a study partner who is strong in that subject\n\nClearing carryovers early gives you peace of mind and lets you focus on new courses`;
+  }
+  
+  if (lower.includes('probation') || lower.includes('withdrawal')) {
+    return `Academic probation ${name} happens when your CGPA falls below a certain threshold which is usually around one point zero\n\nIf you are placed on probation you are given a warning and a chance to improve your grades within a specified period\n\nWithdrawal is more serious and can happen after repeated poor performance or failure to meet the conditions of probation\n\nIf you find yourself in this situation I strongly advise you to meet with your course adviser and Head of Department immediately\n\nThey can guide you on the specific requirements you need to meet and may help you find a way forward\n\nSome departments have appeals processes for special circumstances\n\nDo not be afraid to seek help\n\nMany students have recovered from probation with the right support and determination`;
+  }
+  
+  if (lower.includes('registration') || lower.includes('register')) {
+    return `Course registration ${name} is done through the student portal\n\nMake sure you register for the correct courses according to your level and department handbook\n\nPay close attention to the registration deadline because late registration can cause serious problems including missing exams\n\nBefore registering check with your course adviser if you are unsure about which courses to take especially if you have carryovers or special circumstances\n\nIf you face any issues during registration visit your departmental office or the ICT centre for assistance\n\nAlways print and keep multiple copies of your course registration form after registering\n\nThis printout serves as your proof of registration and you may need it throughout the semester`;
+  }
+
+  if (lower.includes('hod') || lower.includes('head of department')) {
+    return `The Head of Department ${name} handles serious academic matters and department level decisions\n\nYou would typically meet the HOD for appeals and special requests or when lower level channels have not resolved your issue\n\nBefore going to the HOD make sure you have exhausted other options first such as your course adviser or the relevant lecturer\n\nWhen meeting the HOD be respectful and prepared with all relevant documents\n\nExplain your situation clearly and concisely\n\nThe HOD is usually very busy so make the most of your time with them`;
+  }
+
+  if (lower.includes('exam') && (lower.includes('record') || lower.includes('transcript'))) {
+    return `The Exams and Records office ${name} is located near the Senate Building\n\nThey handle result issues transcript requests and grade corrections\n\nFor transcripts you will need to pay a fee and fill out a request form\n\nProcessing usually takes several weeks so apply early especially if you need it for graduate school applications or job requirements\n\nFor result issues bring all your documentation including registration forms and any correspondence about the matter`;
+  }
+  
+  return '';
+}
+
+export function generateResponse(message: string, userContext: UserContext, calculateCGPA: Function): string {
+  const lower = message.toLowerCase();
+  const mood = detectMood(message);
+  const userHasSlang = hasSlang(message);
+  const moodResponse = getMoodResponse(mood, userHasSlang, userContext.name);
+  
+  let response = moodResponse ? moodResponse + '\n\n' : '';
+  
+  if (lower.includes('cgpa') || lower.includes('gpa') || lower.includes('grade') || lower.includes('calculate') || lower.includes('result')) {
+    response += generateCGPAExplanation(userContext);
+  } else if (lower.includes('study') || lower.includes('read') || lower.includes('exam') || lower.includes('prepare') || lower.includes('revision') || lower.includes('tips')) {
+    response += generateStudyTips(userContext.name);
+  } else if (lower.includes('who') || lower.includes('where') || lower.includes('office') || lower.includes('meet') || lower.includes('help') || lower.includes('how to')) {
+    const guidance = generateUNNGuidance(message, userContext.name);
+    if (guidance) {
+      response += guidance;
+    } else {
+      response += `I am here to help you with any UNN related questions ${userContext.name}\n\nYou can ask me about your grades and how to calculate your CGPA\n\nYou can ask about how to handle academic issues like missing results or wrong grades or carryovers\n\nI can give you study tips and practical advice\n\nI can also guide you on exactly who to meet for different problems you might be facing\n\nWhat would you like to know more about`;
+    }
+  } else if (lower.includes('thank')) {
+    const thankResponses = [
+      `You are most welcome ${userContext.name} and I am always here whenever you need help\n\nFeel free to come back and ask me anything anytime\n\nYour academic success matters to me`,
+      `It is my pleasure to help you ${userContext.name}\n\nIf you have any more questions or need guidance in the future just reach out\n\nI am here for you`,
+      `Anytime at all ${userContext.name}\n\nRemember I am here to support you throughout your entire academic journey\n\nDo not hesitate to ask if something comes up`,
+    ];
+    response += thankResponses[Math.floor(Math.random() * thankResponses.length)];
+  } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('good morning') || lower.includes('good afternoon') || lower.includes('good evening')) {
+    response += `Hello ${userContext.name}\n\nIt is good to hear from you\n\nHow can I assist you today\n\nI can help you with calculating your CGPA\n\nI can explain UNN policies and procedures\n\nI can give you practical study tips\n\nI can guide you on who to meet for any academic issue you might be facing\n\nJust let me know what is on your mind`;
+  } else if (lower.includes('who made you') || lower.includes('who created you') || lower.includes('noskytech') || lower.includes('who are you') || lower.includes('what are you')) {
+    response += `I am Gradex AI and I was created by NoskyTech to serve as your academic companion here at the University of Nigeria Nsukka\n\nMy purpose is to help UNN students like yourself track your academic progress calculate your grades and provide guidance whenever you need it\n\nI am designed to be calm mature and supportive\n\nI am here to help you navigate your academic journey from course registration to graduation\n\nThink of me as a friendly senior who has been through it all and wants to see you succeed`;
+  } else {
+    const guidance = generateUNNGuidance(message, userContext.name);
+    if (guidance) {
+      response += guidance;
+    } else {
+      const generalResponses = [
+        `I hear you ${userContext.name}\n\nCould you tell me a bit more about what you need help with\n\nI can assist with CGPA calculations or study advice or guidance on UNN procedures or just general academic support\n\nWhatever is on your mind I am here to help`,
+        `I am here to help you with anything academic related ${userContext.name}\n\nWhether it is understanding your grades or figuring out who to meet for an issue or getting study tips I have got you covered\n\nJust share what is on your mind and let us work through it together`,
+        `Feel free to share what is going on ${userContext.name}\n\nI can help with calculating your CGPA or explaining UNN rules or giving you practical advice on how to improve academically\n\nI am listening and ready to support you`,
+      ];
+      response += generalResponses[Math.floor(Math.random() * generalResponses.length)];
+    }
+  }
+  
+  if (mood === 'sad' || mood === 'stressed' || mood === 'confused') {
+    response += `\n\nAre you feeling better now or would you like me to explain anything further\n\nI am here for as long as you need`;
+  }
+  
+  return response;
+}
+
+export function generateWelcomeMessage(userContext: UserContext): string {
+  const { name, cgpa, carryoversCount } = userContext;
+  
+  let welcome = `Hello ${name}\n\nWelcome to Gradex AI\n\nI am your academic companion created by NoskyTech to help UNN students like yourself navigate your academic journey`;
+  
+  if (cgpa > 0) {
+    welcome += `\n\nI can see your current CGPA is ${cgpa.toFixed(2)}`;
+    if (carryoversCount > 0) {
+      welcome += ` and you have ${carryoversCount} carryover course${carryoversCount > 1 ? 's' : ''} that we should work on clearing`;
+    } else {
+      welcome += ` and you have no carryovers which is great`;
+    }
+  }
+  
+  welcome += `\n\nI am here to help you with anything related to your academics\n\nYou can ask me about calculating your CGPA or understanding UNN policies or getting study tips or knowing exactly who to meet for any issue you are facing\n\nI speak in a natural conversational way because I want you to feel like you are talking to a supportive senior not a machine\n\nHow can I assist you today`;
+  
+  return welcome;
 }
