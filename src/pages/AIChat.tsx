@@ -199,8 +199,8 @@ export default function AIChat() {
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">Gradex AI</h1>
-                  <p className="text-xs text-muted-foreground">Your Academic Companion by NoskyTech</p>
+                  <h1 className="text-xl font-bold text-foreground">Liona</h1>
+                  <p className="text-xs text-muted-foreground">Academic Assistant by Noskytech</p>
                 </div>
               </div>
             </div>
