@@ -5,7 +5,7 @@ import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Send, Mic, MicOff, Sparkles, Bookmark } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Sparkles, Bookmark, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getStoredData } from '@/lib/storage';
 import { SavedResponses, saveResponse } from '@/components/SavedResponses';
@@ -28,6 +28,7 @@ export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const hasInitialized = useRef(false);
@@ -67,7 +68,7 @@ export default function AIChat() {
   }, [messages]);
 
   const speakMessage = (text: string) => {
-    if ('speechSynthesis' in window && voiceEnabled) {
+    if ('speechSynthesis' in window && voiceEnabled && !isMuted) {
       window.speechSynthesis.cancel();
       
       // Process text for natural speech
@@ -245,6 +246,17 @@ export default function AIChat() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setIsMuted(!isMuted);
+                  if (!isMuted) window.speechSynthesis.cancel();
+                }}
+                title={isMuted ? 'Unmute voice' : 'Mute voice'}
+              >
+                {isMuted ? <VolumeX className="w-5 h-5 text-muted-foreground" /> : <Volume2 className="w-5 h-5 text-primary" />}
+              </Button>
               <StudyTimer />
               <SavedResponses />
             </div>
