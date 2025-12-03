@@ -69,23 +69,63 @@ export default function AIChat() {
   const speakMessage = (text: string) => {
     if ('speechSynthesis' in window && voiceEnabled) {
       window.speechSynthesis.cancel();
-      // Process decimal numbers: 4.00 → "4 point 0 0"
+      
+      // Process text for natural speech
       const processedText = text
-        .replace(/\*\*/g, '') // Remove markdown bold
-        .replace(/#{1,3}\s*/g, '') // Remove markdown headers
-        .replace(/•/g, '') // Remove bullet points
-        .replace(/\|/g, '') // Remove table pipes
-        .replace(/---+/g, '') // Remove horizontal rules
+        .replace(/\*\*/g, '')
+        .replace(/#{1,3}\s*/g, '')
+        .replace(/•/g, '')
+        .replace(/\|/g, '')
+        .replace(/---+/g, '')
         .replace(/(\d+)\.(\d+)/g, (_, before, after) => {
           const afterDigits = after.split('').join(' ');
           return `${before} point ${afterDigits}`;
         });
       
-      const utterance = new SpeechSynthesisUtterance(processedText);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-      window.speechSynthesis.speak(utterance);
+      // Split into sentences for natural pauses
+      const sentences = processedText.split(/\n\n+/).filter(s => s.trim());
+      
+      // Get available voices and prefer female voice
+      const getPreferredVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoices = voices.filter(v => 
+          v.name.toLowerCase().includes('female') ||
+          v.name.toLowerCase().includes('samantha') ||
+          v.name.toLowerCase().includes('victoria') ||
+          v.name.toLowerCase().includes('karen') ||
+          v.name.toLowerCase().includes('moira') ||
+          v.name.toLowerCase().includes('tessa') ||
+          v.name.toLowerCase().includes('fiona') ||
+          v.name.includes('Google UK English Female') ||
+          v.name.includes('Microsoft Zira')
+        );
+        return femaleVoices[0] || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      };
+      
+      const speakSentences = (index: number) => {
+        if (index >= sentences.length) return;
+        
+        const utterance = new SpeechSynthesisUtterance(sentences[index]);
+        utterance.rate = 0.95;
+        utterance.pitch = 0.98;
+        utterance.volume = 1.0;
+        
+        const voice = getPreferredVoice();
+        if (voice) utterance.voice = voice;
+        
+        utterance.onend = () => {
+          setTimeout(() => speakSentences(index + 1), 350);
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      };
+      
+      // Ensure voices are loaded before speaking
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => speakSentences(0);
+      } else {
+        speakSentences(0);
+      }
     }
   };
 
