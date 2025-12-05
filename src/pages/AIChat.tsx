@@ -5,9 +5,8 @@ import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Send, Mic, MicOff, Sparkles, Bookmark, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStoredData } from '@/lib/storage';
 import { SavedResponses, saveResponse } from '@/components/SavedResponses';
 import { StudyTimer } from '@/components/StudyTimer';
 import { calculateCGPA } from '@/lib/grading';
@@ -27,16 +26,12 @@ export default function AIChat() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
   const hasInitialized = useRef(false);
 
   const cgpa = getCGPA();
   const carryovers = getCarryovers();
   const currentGPA = getCurrentGPA();
-  const { voiceEnabled } = getStoredData();
 
   const userContext = {
     name: user?.name || 'Student',
@@ -56,9 +51,6 @@ export default function AIChat() {
         timestamp: new Date(),
       };
       setMessages([welcomeMsg]);
-      if (voiceEnabled) {
-        speakMessage(welcomeMsg.content);
-      }
     }
   }, []);
 
@@ -66,69 +58,6 @@ export default function AIChat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const speakMessage = (text: string) => {
-    if ('speechSynthesis' in window && voiceEnabled && !isMuted) {
-      window.speechSynthesis.cancel();
-      
-      // Process text for natural speech
-      const processedText = text
-        .replace(/\*\*/g, '')
-        .replace(/#{1,3}\s*/g, '')
-        .replace(/•/g, '')
-        .replace(/\|/g, '')
-        .replace(/---+/g, '')
-        .replace(/(\d+)\.(\d+)/g, (_, before, after) => {
-          const afterDigits = after.split('').join(' ');
-          return `${before} point ${afterDigits}`;
-        });
-      
-      // Split into sentences for natural pauses
-      const sentences = processedText.split(/\n\n+/).filter(s => s.trim());
-      
-      // Get available voices and prefer female voice
-      const getPreferredVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const femaleVoices = voices.filter(v => 
-          v.name.toLowerCase().includes('female') ||
-          v.name.toLowerCase().includes('samantha') ||
-          v.name.toLowerCase().includes('victoria') ||
-          v.name.toLowerCase().includes('karen') ||
-          v.name.toLowerCase().includes('moira') ||
-          v.name.toLowerCase().includes('tessa') ||
-          v.name.toLowerCase().includes('fiona') ||
-          v.name.includes('Google UK English Female') ||
-          v.name.includes('Microsoft Zira')
-        );
-        return femaleVoices[0] || voices.find(v => v.lang.startsWith('en')) || voices[0];
-      };
-      
-      const speakSentences = (index: number) => {
-        if (index >= sentences.length) return;
-        
-        const utterance = new SpeechSynthesisUtterance(sentences[index]);
-        utterance.rate = 0.95;
-        utterance.pitch = 0.98;
-        utterance.volume = 1.0;
-        
-        const voice = getPreferredVoice();
-        if (voice) utterance.voice = voice;
-        
-        utterance.onend = () => {
-          setTimeout(() => speakSentences(index + 1), 350);
-        };
-        
-        window.speechSynthesis.speak(utterance);
-      };
-      
-      // Ensure voices are loaded before speaking
-      if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.onvoiceschanged = () => speakSentences(0);
-      } else {
-        speakSentences(0);
-      }
-    }
-  };
 
   const handleSendMessage = () => {
     if (!input.trim()) return;
@@ -150,80 +79,7 @@ export default function AIChat() {
     };
 
     setMessages((prev) => [...prev, userMessage, assistantResponse]);
-    
-    if (voiceEnabled) {
-      speakMessage(assistantResponse.content);
-    }
-
     setInput('');
-  };
-
-  const toggleVoiceInput = async () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      toast({
-        title: 'Not Supported',
-        description: 'Voice input is not supported in your browser. Please use Chrome or Edge.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        stream.getTracks().forEach(track => track.stop());
-      });
-      
-      const recognition = new (window as any).webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        toast({ title: 'Listening...', description: 'Speak now' });
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        
-        setTimeout(() => {
-          const response = generateResponse(transcript, userContext, calculateCGPA);
-          const userMessage: Message = { id: crypto.randomUUID(), role: 'user', content: transcript, timestamp: new Date() };
-          const assistantResponse: Message = { id: crypto.randomUUID(), role: 'assistant', content: response, timestamp: new Date() };
-          setMessages((prev) => [...prev, userMessage, assistantResponse]);
-          if (voiceEnabled) speakMessage(assistantResponse.content);
-          setInput('');
-        }, 500);
-        
-        toast({ title: 'Heard you!', description: `"${transcript}"` });
-      };
-
-      recognition.onerror = (event: any) => {
-        let errorMsg = 'Voice input error. Please try again.';
-        if (event.error === 'no-speech') errorMsg = 'No speech detected.';
-        else if (event.error === 'audio-capture') errorMsg = 'Microphone not detected.';
-        else if (event.error === 'not-allowed') errorMsg = 'Microphone access denied.';
-        toast({ title: 'Voice Error', description: errorMsg, variant: 'destructive' });
-      };
-
-      recognition.onend = () => setIsListening(false);
-      recognition.start();
-      recognitionRef.current = recognition;
-    } catch (error) {
-      toast({
-        title: 'Microphone Access Required',
-        description: 'Please enable microphone access in your browser settings.',
-        variant: 'destructive',
-      });
-    }
   };
 
   return (
@@ -240,23 +96,12 @@ export default function AIChat() {
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">Liona</h1>
+                  <h1 className="text-xl font-bold text-foreground">Gradex Smart Assistant</h1>
                   <p className="text-xs text-muted-foreground">Academic Assistant by Noskytech</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsMuted(!isMuted);
-                  if (!isMuted) window.speechSynthesis.cancel();
-                }}
-                title={isMuted ? 'Unmute voice' : 'Mute voice'}
-              >
-                {isMuted ? <VolumeX className="w-5 h-5 text-muted-foreground" /> : <Volume2 className="w-5 h-5 text-primary" />}
-              </Button>
               <StudyTimer />
               <SavedResponses />
             </div>
@@ -290,12 +135,9 @@ export default function AIChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Ask about CGPA, study tips, UNN policies..."
+              placeholder="Ask about CGPA, study tips, academic guidance..."
               className="flex-1"
             />
-            <Button variant={isListening ? 'default' : 'outline'} size="icon" onClick={toggleVoiceInput} className={isListening ? 'animate-glow-pulse' : ''}>
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </Button>
             <Button onClick={handleSendMessage}>
               <Send className="w-5 h-5" />
             </Button>
