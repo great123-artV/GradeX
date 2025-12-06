@@ -3,9 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CourseProvider } from "@/contexts/CourseContext";
-import { isLoggedIn } from "@/lib/storage";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -14,6 +13,7 @@ import AddCourse from "./pages/AddCourse";
 import AIChat from "./pages/AIChat";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,12 +24,44 @@ const queryClient = new QueryClient({
   },
 });
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  return session ? <>{children}</> : <Navigate to="/auth" replace />;
 }
 
-function ProtectedRoute({ children }: ProtectedRouteProps) {
-  return isLoggedIn() ? <>{children}</> : <Navigate to="/auth" replace />;
+function AppRoutes() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/auth" element={session ? <Navigate to="/dashboard" replace /> : <Auth />} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+      <Route path="/add-course" element={<ProtectedRoute><AddCourse /></ProtectedRoute>} />
+      <Route path="/edit-course/:id" element={<ProtectedRoute><AddCourse /></ProtectedRoute>} />
+      <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 }
 
 const App = () => (
@@ -40,59 +72,7 @@ const App = () => (
       <AuthProvider>
         <CourseProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/courses"
-                element={
-                  <ProtectedRoute>
-                    <Courses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/add-course"
-                element={
-                  <ProtectedRoute>
-                    <AddCourse />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/edit-course/:id"
-                element={
-                  <ProtectedRoute>
-                    <AddCourse />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ai-chat"
-                element={
-                  <ProtectedRoute>
-                    <AIChat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
             <OnboardingTutorial />
           </BrowserRouter>
         </CourseProvider>

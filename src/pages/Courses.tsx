@@ -4,44 +4,37 @@ import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ArrowLeft, Edit, Trash2, AlertCircle, Target } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Courses() {
   const navigate = useNavigate();
-  const { user, updateProfile } = useAuth();
-  const { getCurrentSemesterCourses, getCurrentGPA, getCarryovers, deleteCourse } = useCourses();
+  const { user } = useAuth();
+  const { getCurrentSemesterCourses, getCurrentGPA, getCarryovers, deleteCourse, loading } = useCourses();
   const { toast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const currentCourses = getCurrentSemesterCourses();
   const gpa = getCurrentGPA();
   const carryovers = getCarryovers();
-  
-  const [expectedCourses, setExpectedCourses] = useState<number>(
-    user?.expectedCoursesThisSemester || 0
-  );
-  const [isEditingTarget, setIsEditingTarget] = useState(false);
 
-  const remainingCourses = Math.max(0, expectedCourses - currentCourses.length);
-
-  const handleSaveExpectedCourses = () => {
-    if (expectedCourses > 0) {
-      updateProfile({ ...user!, expectedCoursesThisSemester: expectedCourses });
-      setIsEditingTarget(false);
+  const handleDelete = async (id: string, courseCode: string) => {
+    setDeletingId(id);
+    try {
+      await deleteCourse(id);
       toast({
-        title: 'Target Set',
-        description: `You've set a target of ${expectedCourses} courses this semester.`,
+        title: 'Course Deleted',
+        description: `${courseCode} has been removed from your records.`,
       });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete course. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
     }
-  };
-
-  const handleDelete = (id: string, courseCode: string) => {
-    deleteCourse(id);
-    toast({
-      title: 'Course Deleted',
-      description: `${courseCode} has been removed from your records.`,
-    });
   };
 
   const getGradeColor = (grade: string) => {
@@ -51,6 +44,14 @@ export default function Courses() {
     if (grade === 'E') return 'text-muted-foreground';
     return 'text-destructive';
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -64,7 +65,7 @@ export default function Courses() {
             <div>
               <h1 className="text-2xl font-bold text-foreground">My Courses</h1>
               <p className="text-sm text-muted-foreground">
-                Level {user?.currentLevel} • Semester {user?.currentSemester}
+                Level {user?.level} • Semester {user?.semester}
               </p>
             </div>
           </div>
@@ -75,57 +76,9 @@ export default function Courses() {
                 <div className="text-3xl font-bold text-primary">{gpa.toFixed(2)}</div>
                 <div className="text-xs text-muted-foreground">Semester GPA</div>
               </div>
-              
-              {expectedCourses > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Target className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {remainingCourses}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Remaining</div>
-                  </div>
-                </div>
-              )}
             </div>
             
-            <div className="flex gap-2">
-              {!isEditingTarget ? (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setIsEditingTarget(true)}
-                >
-                  <Target className="w-4 h-4 mr-2" />
-                  {expectedCourses > 0 ? 'Edit Target' : 'Set Target'}
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={expectedCourses || ''}
-                    onChange={(e) => setExpectedCourses(parseInt(e.target.value) || 0)}
-                    className="w-20 h-9"
-                    placeholder="0"
-                  />
-                  <Button size="sm" onClick={handleSaveExpectedCourses}>
-                    Save
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => setIsEditingTarget(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-              <Button onClick={() => navigate('/add-course')}>Add Course</Button>
-            </div>
+            <Button onClick={() => navigate('/add-course')}>Add Course</Button>
           </div>
         </div>
       </header>
@@ -173,8 +126,13 @@ export default function Courses() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(course.id, course.code)}
+                        disabled={deletingId === course.id}
                       >
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                        {deletingId === course.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        )}
                       </Button>
                     </div>
                   </div>

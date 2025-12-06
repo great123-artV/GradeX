@@ -1,52 +1,92 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Eye, EyeOff, GraduationCap, BookOpen, Calendar } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, BookOpen, Calendar, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    about: '',
     currentLevel: '100',
     currentSemester: '1',
   });
 
-  const { login, signup } = useAuth();
+  const { login, signup, session, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isLogin) {
-      const success = login(formData.email, formData.password);
-      if (success) {
-        toast({ title: 'Welcome back!', description: 'Successfully logged in.' });
-        navigate('/dashboard');
-      } else {
-        toast({ title: 'Error', description: 'Invalid credentials', variant: 'destructive' });
-      }
-    } else {
-      if (!formData.name || !formData.email || !formData.password) {
-        toast({ title: 'Error', description: 'Please fill all required fields', variant: 'destructive' });
-        return;
-      }
-      signup(formData.name, formData.email, formData.password, formData.about, formData.currentLevel, formData.currentSemester);
-      toast({ title: 'Welcome to Gradex!', description: 'Account created successfully.' });
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && session) {
       navigate('/dashboard');
     }
+  }, [session, loading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      if (isLogin) {
+        const { error } = await login(formData.email, formData.password);
+        if (error) {
+          toast({ title: 'Login Failed', description: error, variant: 'destructive' });
+        } else {
+          toast({ title: 'Welcome back!', description: 'Successfully logged in.' });
+          navigate('/dashboard');
+        }
+      } else {
+        if (!formData.name || !formData.email || !formData.password) {
+          toast({ title: 'Error', description: 'Please fill all required fields', variant: 'destructive' });
+          setIsLoading(false);
+          return;
+        }
+        
+        if (formData.password.length < 6) {
+          toast({ title: 'Error', description: 'Password must be at least 6 characters', variant: 'destructive' });
+          setIsLoading(false);
+          return;
+        }
+        
+        const { error } = await signup(
+          formData.name, 
+          formData.email, 
+          formData.password, 
+          formData.currentLevel,
+          formData.currentSemester
+        );
+        
+        if (error) {
+          toast({ title: 'Signup Failed', description: error, variant: 'destructive' });
+        } else {
+          toast({ title: 'Welcome to Gradex!', description: 'Account created successfully.' });
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -69,6 +109,7 @@ export default function Auth() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Your full name"
                 required
+                disabled={isLoading}
               />
             </div>
           )}
@@ -82,6 +123,7 @@ export default function Auth() {
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="your.email@example.com"
               required
+              disabled={isLoading}
             />
           </div>
 
@@ -96,6 +138,7 @@ export default function Auth() {
                 placeholder="••••••••"
                 required
                 className="pr-10"
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -108,72 +151,69 @@ export default function Auth() {
           </div>
 
           {!isLogin && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="level" className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-primary" />
-                    Level *
-                  </Label>
-                  <Select 
-                    value={formData.currentLevel} 
-                    onValueChange={(value) => setFormData({ ...formData, currentLevel: value })}
-                  >
-                    <SelectTrigger id="level">
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="100">100 Level</SelectItem>
-                      <SelectItem value="200">200 Level</SelectItem>
-                      <SelectItem value="300">300 Level</SelectItem>
-                      <SelectItem value="400">400 Level</SelectItem>
-                      <SelectItem value="500">500 Level</SelectItem>
-                      <SelectItem value="600">600 Level</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="semester" className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    Semester *
-                  </Label>
-                  <Select 
-                    value={formData.currentSemester} 
-                    onValueChange={(value) => setFormData({ ...formData, currentSemester: value })}
-                  >
-                    <SelectTrigger id="semester">
-                      <SelectValue placeholder="Select semester" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1st Semester</SelectItem>
-                      <SelectItem value="2">2nd Semester</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="level" className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  Level *
+                </Label>
+                <Select 
+                  value={formData.currentLevel} 
+                  onValueChange={(value) => setFormData({ ...formData, currentLevel: value })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="level">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100 Level</SelectItem>
+                    <SelectItem value="200">200 Level</SelectItem>
+                    <SelectItem value="300">300 Level</SelectItem>
+                    <SelectItem value="400">400 Level</SelectItem>
+                    <SelectItem value="500">500 Level</SelectItem>
+                    <SelectItem value="600">600 Level</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <Label htmlFor="about">About (Optional)</Label>
-                <Textarea
-                  id="about"
-                  value={formData.about}
-                  onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-                  placeholder="Tell us about yourself..."
-                  rows={3}
-                />
+                <Label htmlFor="semester" className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Semester *
+                </Label>
+                <Select 
+                  value={formData.currentSemester} 
+                  onValueChange={(value) => setFormData({ ...formData, currentSemester: value })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="semester">
+                    <SelectValue placeholder="Select semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1st Semester</SelectItem>
+                    <SelectItem value="2">2nd Semester</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </>
+            </div>
           )}
 
-          <Button type="submit" className="w-full">
-            {isLogin ? 'Login' : 'Sign Up'}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {isLogin ? 'Logging in...' : 'Creating account...'}
+              </>
+            ) : (
+              isLogin ? 'Login' : 'Sign Up'
+            )}
           </Button>
 
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
             className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+            disabled={isLoading}
           >
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
           </button>

@@ -5,12 +5,11 @@ import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Send, Sparkles, Bookmark } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Bookmark, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SavedResponses, saveResponse } from '@/components/SavedResponses';
 import { StudyTimer } from '@/components/StudyTimer';
-import { calculateCGPA } from '@/lib/grading';
-import { generateResponse, generateWelcomeMessage } from '@/lib/gradexAI';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -26,6 +25,7 @@ export default function AIChat() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
 
@@ -38,29 +38,32 @@ export default function AIChat() {
     cgpa,
     carryoversCount: carryovers.length,
     currentGPA,
+    level: user?.level,
+    semester: user?.semester,
   };
 
-  // Initialize welcome message only once
   useEffect(() => {
     if (!hasInitialized.current && messages.length === 0) {
       hasInitialized.current = true;
-      const welcomeMsg: Message = {
+      const welcomeContent = cgpa > 0 
+        ? `Hello ${userContext.name}!\n\nI'm Gradex Smart Assistant, powered by Noskytech. I can see your current CGPA is ${cgpa.toFixed(2)}${carryovers.length > 0 ? ` with ${carryovers.length} carryover(s)` : ''}.\n\nHow can I help you with your academic performance today?`
+        : `Hello ${userContext.name}!\n\nI'm Gradex Smart Assistant, powered by Noskytech. I help students understand and improve their academic performance using the 5.0 grading system.\n\nYou can ask me about GPA calculations, study tips, or course planning. What would you like help with?`;
+      
+      setMessages([{
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: generateWelcomeMessage(userContext),
+        content: welcomeContent,
         timestamp: new Date(),
-      };
-      setMessages([welcomeMsg]);
+      }]);
     }
   }, []);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!input.trim()) return;
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -69,17 +72,80 @@ export default function AIChat() {
       timestamp: new Date(),
     };
 
-    const response = generateResponse(input, userContext, calculateCGPA);
-
-    const assistantResponse: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: response,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage, assistantResponse]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
+
+    let assistantContent = '';
+    const assistantId = crypto.randomUUID();
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gradex-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          userContext,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get response');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            const content = data.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantContent += content;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant' && last.id === assistantId) {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                }
+                return [...prev, { id: assistantId, role: 'assistant', content: assistantContent, timestamp: new Date() }];
+              });
+            }
+          } catch {}
+        }
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to get AI response',
+        variant: 'destructive',
+      });
+      if (!assistantContent) {
+        setMessages(prev => [...prev, {
+          id: assistantId,
+          role: 'assistant',
+          content: "I'm having trouble connecting right now. Please try again in a moment.",
+          timestamp: new Date(),
+        }]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -97,7 +163,7 @@ export default function AIChat() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-foreground">Gradex Smart Assistant</h1>
-                  <p className="text-xs text-muted-foreground">Academic Assistant by Noskytech</p>
+                  <p className="text-xs text-muted-foreground">Powered by Noskytech</p>
                 </div>
               </div>
             </div>
@@ -108,6 +174,7 @@ export default function AIChat() {
           </div>
         </div>
       </header>
+
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {messages.map((message) => (
@@ -125,9 +192,17 @@ export default function AIChat() {
               </div>
             </div>
           ))}
+          {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            <div className="flex justify-start">
+              <Card className="p-4 bg-card">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </Card>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </main>
+
       <div className="border-t border-border bg-card">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex gap-2">
@@ -137,13 +212,15 @@ export default function AIChat() {
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Ask about CGPA, study tips, academic guidance..."
               className="flex-1"
+              disabled={isLoading}
             />
-            <Button onClick={handleSendMessage}>
-              <Send className="w-5 h-5" />
+            <Button onClick={handleSendMessage} disabled={isLoading}>
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </Button>
           </div>
         </div>
       </div>
+
       <footer className="py-3 text-center border-t border-border bg-card/50">
         <p className="text-xs">
           <span className="text-muted-foreground">Powered by </span>

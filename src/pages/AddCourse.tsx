@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { calculateGrade } from '@/lib/grading';
 
@@ -16,6 +16,7 @@ export default function AddCourse() {
   const { user } = useAuth();
   const { courses, addCourse, updateCourse } = useCourses();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const isEdit = Boolean(id);
   const existingCourse = isEdit ? courses.find((c) => c.id === id) : null;
@@ -27,7 +28,7 @@ export default function AddCourse() {
     score: existingCourse?.score || 0,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.code || !formData.title || formData.score < 0 || formData.score > 100) {
@@ -39,25 +40,35 @@ export default function AddCourse() {
       return;
     }
 
-    if (isEdit && id) {
-      updateCourse(id, formData);
+    setIsLoading(true);
+    try {
+      if (isEdit && id) {
+        await updateCourse(id, formData);
+        toast({
+          title: 'Course Updated',
+          description: `${formData.code} has been updated successfully.`,
+        });
+      } else {
+        await addCourse({
+          ...formData,
+          level: user?.level || '100L',
+          semester: user?.semester || '1st',
+        });
+        toast({
+          title: 'Course Added',
+          description: `${formData.code} has been added to your records.`,
+        });
+      }
+      navigate('/courses');
+    } catch (error) {
       toast({
-        title: 'Course Updated',
-        description: `${formData.code} has been updated successfully.`,
+        title: 'Error',
+        description: 'Failed to save course. Please try again.',
+        variant: 'destructive',
       });
-    } else {
-      addCourse({
-        ...formData,
-        level: user?.currentLevel || '100',
-        semester: user?.currentSemester || '1',
-      });
-      toast({
-        title: 'Course Added',
-        description: `${formData.code} has been added to your records.`,
-      });
+    } finally {
+      setIsLoading(false);
     }
-
-    navigate('/courses');
   };
 
   const previewGrade = calculateGrade(formData.score);
@@ -77,7 +88,7 @@ export default function AddCourse() {
                 {isEdit ? 'Edit Course' : 'Add New Course'}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Level {user?.currentLevel} • Semester {user?.currentSemester}
+                Level {user?.level} • Semester {user?.semester}
               </p>
             </div>
           </div>
@@ -96,6 +107,7 @@ export default function AddCourse() {
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 placeholder="e.g., CSC 101"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -107,6 +119,7 @@ export default function AddCourse() {
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Introduction to Computer Science"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -120,6 +133,7 @@ export default function AddCourse() {
                 value={formData.units}
                 onChange={(e) => setFormData({ ...formData, units: parseInt(e.target.value) })}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -133,6 +147,7 @@ export default function AddCourse() {
                 value={formData.score}
                 onChange={(e) => setFormData({ ...formData, score: parseInt(e.target.value) })}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -155,14 +170,22 @@ export default function AddCourse() {
             </Card>
 
             <div className="pt-4 space-y-2">
-              <Button type="submit" className="w-full">
-                {isEdit ? 'Update Course' : 'Add Course'}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {isEdit ? 'Updating...' : 'Adding...'}
+                  </>
+                ) : (
+                  isEdit ? 'Update Course' : 'Add Course'
+                )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full"
                 onClick={() => navigate('/courses')}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
