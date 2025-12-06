@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +7,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CourseProvider } from "@/contexts/CourseContext";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
+import SplashScreen from "@/components/SplashScreen";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import AddCourse from "./pages/AddCourse";
@@ -77,6 +80,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={session ? <Navigate to="/dashboard" replace /> : <Auth />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
       <Route path="/add-course" element={<ProtectedRoute><AddCourse /></ProtectedRoute>} />
@@ -92,6 +96,31 @@ function AppRoutes() {
   );
 }
 
+function AppContent() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Check if user has seen splash before this session
+    const hasSeenSplash = sessionStorage.getItem('hasSeenSplash');
+    if (hasSeenSplash) {
+      setShowSplash(false);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('hasSeenSplash', 'true');
+    setShowSplash(false);
+  };
+
+  return (
+    <>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <AppRoutes />
+      <OnboardingTutorial />
+    </>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -100,8 +129,7 @@ const App = () => (
       <AuthProvider>
         <CourseProvider>
           <BrowserRouter>
-            <AppRoutes />
-            <OnboardingTutorial />
+            <AppContent />
           </BrowserRouter>
         </CourseProvider>
       </AuthProvider>

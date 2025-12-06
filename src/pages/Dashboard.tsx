@@ -4,10 +4,11 @@ import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, BookOpen, AlertCircle, Settings, Sparkles, Loader2 } from 'lucide-react';
+import GPAChart from '@/components/GPAChart';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { getCurrentSemesterCourses, getCGPA, getCarryovers, loading } = useCourses();
+  const { courses, getCurrentSemesterCourses, getCGPA, getCarryovers, loading } = useCourses();
   const navigate = useNavigate();
 
   const currentCourses = getCurrentSemesterCourses();
@@ -23,7 +24,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -77,6 +78,11 @@ export default function Dashboard() {
             <p className="text-sm opacity-90">Keep pushing for excellence!</p>
           </div>
         </Card>
+
+        {/* GPA Performance Chart */}
+        {courses.length > 0 && (
+          <GPAChart courses={courses} />
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">

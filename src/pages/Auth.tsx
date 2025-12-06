@@ -5,18 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Eye, EyeOff, GraduationCap, BookOpen, Calendar, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, BookOpen, Calendar, Loader2, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
+    department: '',
     currentLevel: '100',
     currentSemester: '1',
   });
@@ -57,13 +60,20 @@ export default function Auth() {
           setIsLoading(false);
           return;
         }
+
+        if (formData.password !== formData.confirmPassword) {
+          toast({ title: 'Error', description: 'Passwords do not match', variant: 'destructive' });
+          setIsLoading(false);
+          return;
+        }
         
         const { error } = await signup(
           formData.name, 
           formData.email, 
           formData.password, 
           formData.currentLevel,
-          formData.currentSemester
+          formData.currentSemester,
+          formData.department
         );
         
         if (error) {
@@ -102,7 +112,7 @@ export default function Auth() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div>
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -151,51 +161,90 @@ export default function Auth() {
           </div>
 
           {!isLogin && (
-            <div className="grid grid-cols-2 gap-4">
+            <>
               <div>
-                <Label htmlFor="level" className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-primary" />
-                  Level *
-                </Label>
-                <Select 
-                  value={formData.currentLevel} 
-                  onValueChange={(value) => setFormData({ ...formData, currentLevel: value })}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="level">
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="100">100 Level</SelectItem>
-                    <SelectItem value="200">200 Level</SelectItem>
-                    <SelectItem value="300">300 Level</SelectItem>
-                    <SelectItem value="400">400 Level</SelectItem>
-                    <SelectItem value="500">500 Level</SelectItem>
-                    <SelectItem value="600">600 Level</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    placeholder="••••••••"
+                    required
+                    className="pr-10"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
-                <Label htmlFor="semester" className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-primary" />
-                  Semester *
+                <Label htmlFor="department" className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-primary" />
+                  Department
                 </Label>
-                <Select 
-                  value={formData.currentSemester} 
-                  onValueChange={(value) => setFormData({ ...formData, currentSemester: value })}
+                <Input
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  placeholder="e.g., Computer Science"
                   disabled={isLoading}
-                >
-                  <SelectTrigger id="semester">
-                    <SelectValue placeholder="Select semester" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1st Semester</SelectItem>
-                    <SelectItem value="2">2nd Semester</SelectItem>
-                  </SelectContent>
-                </Select>
+                />
               </div>
-            </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="level" className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-primary" />
+                    Level *
+                  </Label>
+                  <Select 
+                    value={formData.currentLevel} 
+                    onValueChange={(value) => setFormData({ ...formData, currentLevel: value })}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="level">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">100 Level</SelectItem>
+                      <SelectItem value="200">200 Level</SelectItem>
+                      <SelectItem value="300">300 Level</SelectItem>
+                      <SelectItem value="400">400 Level</SelectItem>
+                      <SelectItem value="500">500 Level</SelectItem>
+                      <SelectItem value="600">600 Level</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="semester" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    Semester *
+                  </Label>
+                  <Select 
+                    value={formData.currentSemester} 
+                    onValueChange={(value) => setFormData({ ...formData, currentSemester: value })}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="semester">
+                      <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1st Semester</SelectItem>
+                      <SelectItem value="2">2nd Semester</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
@@ -208,6 +257,17 @@ export default function Auth() {
               isLogin ? 'Login' : 'Sign Up'
             )}
           </Button>
+
+          {isLogin && (
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              className="w-full text-sm text-primary hover:underline transition-colors"
+              disabled={isLoading}
+            >
+              Forgot Password?
+            </button>
+          )}
 
           <button
             type="button"
