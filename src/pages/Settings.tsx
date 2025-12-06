@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import {
   Accordion,
   AccordionContent,
@@ -21,15 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, LogOut, Moon, Sun, Monitor, BookOpen } from 'lucide-react';
+import { ArrowLeft, LogOut, Moon, Sun, Monitor, BookOpen, Shield, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStoredData, saveTheme, saveVoiceEnabled, saveTutorialCompleted } from '@/lib/storage';
+import { getStoredData, saveTheme, saveTutorialCompleted } from '@/lib/storage';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, updateProfile, logout } = useAuth();
   const { courses } = useCourses();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Group courses by level and semester
   const groupedCourses = courses.reduce((acc, course) => {
@@ -61,14 +61,13 @@ export default function Settings() {
     name: user?.name || '',
     email: user?.email || '',
     about: user?.about || '',
-    currentLevel: user?.currentLevel || '100',
-    currentSemester: user?.currentSemester || '1',
+    level: user?.level || '100L',
+    semester: user?.semester || '1st',
   });
 
   const [theme, setThemeState] = useState<'light' | 'dark' | 'system'>(
     getStoredData().theme
   );
-  const [voiceEnabled, setVoiceEnabledState] = useState(getStoredData().voiceEnabled);
 
   useEffect(() => {
     applyTheme(theme);
@@ -86,9 +85,16 @@ export default function Settings() {
     }
   };
 
-  const handleSaveProfile = () => {
-    updateProfile(formData);
-    toast({ title: 'Profile Updated', description: 'Your changes have been saved.' });
+  const handleSaveProfile = async () => {
+    setIsLoading(true);
+    try {
+      await updateProfile(formData);
+      toast({ title: 'Profile Updated', description: 'Your changes have been saved.' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update profile.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
@@ -97,19 +103,8 @@ export default function Settings() {
     applyTheme(newTheme);
   };
 
-  const handleVoiceToggle = (enabled: boolean) => {
-    setVoiceEnabledState(enabled);
-    saveVoiceEnabled(enabled);
-    toast({
-      title: enabled ? 'Voice Enabled' : 'Voice Disabled',
-      description: enabled
-        ? 'AI responses will now be spoken aloud'
-        : 'AI responses will be text-only',
-    });
-  };
-
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     toast({ title: 'Logged Out', description: 'See you next time!' });
     navigate('/auth');
   };
@@ -140,6 +135,7 @@ export default function Settings() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                disabled={isLoading}
               />
             </div>
 
@@ -149,8 +145,10 @@ export default function Settings() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                disabled
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
             </div>
 
             <div>
@@ -160,6 +158,7 @@ export default function Settings() {
                 value={formData.about}
                 onChange={(e) => setFormData({ ...formData, about: e.target.value })}
                 rows={3}
+                disabled={isLoading}
               />
             </div>
 
@@ -167,18 +166,19 @@ export default function Settings() {
               <div>
                 <Label htmlFor="level">Current Level</Label>
                 <Select
-                  value={formData.currentLevel}
-                  onValueChange={(value) => setFormData({ ...formData, currentLevel: value })}
+                  value={formData.level}
+                  onValueChange={(value) => setFormData({ ...formData, level: value })}
+                  disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="100">100 Level</SelectItem>
-                    <SelectItem value="200">200 Level</SelectItem>
-                    <SelectItem value="300">300 Level</SelectItem>
-                    <SelectItem value="400">400 Level</SelectItem>
-                    <SelectItem value="500">500 Level</SelectItem>
+                    <SelectItem value="100L">100 Level</SelectItem>
+                    <SelectItem value="200L">200 Level</SelectItem>
+                    <SelectItem value="300L">300 Level</SelectItem>
+                    <SelectItem value="400L">400 Level</SelectItem>
+                    <SelectItem value="500L">500 Level</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -186,24 +186,30 @@ export default function Settings() {
               <div>
                 <Label htmlFor="semester">Current Semester</Label>
                 <Select
-                  value={formData.currentSemester}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, currentSemester: value })
-                  }
+                  value={formData.semester}
+                  onValueChange={(value) => setFormData({ ...formData, semester: value })}
+                  disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">First Semester</SelectItem>
-                    <SelectItem value="2">Second Semester</SelectItem>
+                    <SelectItem value="1st">First Semester</SelectItem>
+                    <SelectItem value="2nd">Second Semester</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <Button onClick={handleSaveProfile} className="w-full">
-              Save Changes
+            <Button onClick={handleSaveProfile} className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </Button>
           </div>
         </Card>
@@ -211,42 +217,30 @@ export default function Settings() {
         {/* Appearance */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Appearance</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Theme</Label>
-              <div className="flex gap-2">
-                <Button
-                  variant={theme === 'light' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleThemeChange('light')}
-                >
-                  <Sun className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={theme === 'dark' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleThemeChange('dark')}
-                >
-                  <Moon className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={theme === 'system' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleThemeChange('system')}
-                >
-                  <Monitor className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Voice Assistant</Label>
-                <p className="text-sm text-muted-foreground">
-                  Enable text-to-speech for AI responses
-                </p>
-              </div>
-              <Switch checked={voiceEnabled} onCheckedChange={handleVoiceToggle} />
+          <div className="flex items-center justify-between">
+            <Label>Theme</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleThemeChange('light')}
+              >
+                <Sun className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleThemeChange('dark')}
+              >
+                <Moon className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleThemeChange('system')}
+              >
+                <Monitor className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </Card>
@@ -330,19 +324,22 @@ export default function Settings() {
 
         {/* Privacy Policy */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Privacy Policy</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Privacy Policy</h2>
+          </div>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              <strong className="text-foreground">Data Storage:</strong> All your data (grades, courses, profile) is stored locally on your device. We do not collect or transmit your personal information to any servers.
+              <strong className="text-foreground">Data Storage:</strong> Your academic data is securely stored in the cloud, synced across your devices. Your data is encrypted and protected.
             </p>
             <p>
-              <strong className="text-foreground">AI Chat:</strong> The AI assistant processes your questions locally. No chat history is stored permanently or sent to external servers.
+              <strong className="text-foreground">AI Chat:</strong> The AI assistant helps with academic guidance. Conversations are processed securely and not shared with third parties.
             </p>
             <p>
-              <strong className="text-foreground">Your Privacy:</strong> Your academic records and personal information remain completely private and under your control. You can delete all data by clearing your browser storage.
+              <strong className="text-foreground">Your Privacy:</strong> Your academic records and personal information remain completely private and under your control.
             </p>
             <p>
-              <strong className="text-foreground">No Third Parties:</strong> We do not share your data with any third parties. This app is designed by NoskyTech specifically for UNN students with privacy in mind.
+              <strong className="text-foreground">Contact:</strong> For questions, contact noskytech1@gmail.com
             </p>
           </div>
         </Card>

@@ -1,1 +1,4 @@
 project_id = "ajmtfhiembgoboplbjfc"
+
+[functions.gradex-chat]
+verify_jwt = true

@@ -3,23 +3,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Plus, BookOpen, AlertCircle, Settings, Sparkles } from 'lucide-react';
+import { Plus, BookOpen, AlertCircle, Settings, Sparkles, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { getCurrentSemesterCourses, getCGPA, getCarryovers } = useCourses();
+  const { getCurrentSemesterCourses, getCGPA, getCarryovers, loading } = useCourses();
   const navigate = useNavigate();
 
   const currentCourses = getCurrentSemesterCourses();
   const cgpa = getCGPA();
   const carryovers = getCarryovers();
 
-  const getGradeColor = (cgpa: number) => {
-    if (cgpa >= 4.5) return 'text-success';
-    if (cgpa >= 3.5) return 'text-primary';
-    if (cgpa >= 2.5) return 'text-accent';
-    return 'text-destructive';
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,7 +30,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Welcome, {user?.name}</h1>
             <p className="text-sm text-muted-foreground">
-              Level {user?.currentLevel} • Semester {user?.currentSemester}
+              Level {user?.level} • Semester {user?.semester}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>

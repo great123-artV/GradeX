@@ -1,17 +1,20 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { Course, calculateGPA, calculateCGPA, getCarryoverCourses, CGPACalculationResult } from '@/lib/grading';
-import { getStoredData, saveCourses } from '@/lib/storage';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
+import { Course, Grade, calculateGPA, calculateCGPA, getCarryoverCourses, CGPACalculationResult, calculateGrade } from '@/lib/grading';
 
 interface CourseContextType {
   courses: Course[];
-  addCourse: (course: Omit<Course, 'id' | 'grade'>) => void;
-  updateCourse: (id: string, updates: Partial<Course>) => void;
-  deleteCourse: (id: string) => void;
+  loading: boolean;
+  addCourse: (course: Omit<Course, 'id' | 'grade'>) => Promise<void>;
+  updateCourse: (id: string, updates: Partial<Course>) => Promise<void>;
+  deleteCourse: (id: string) => Promise<void>;
   getCurrentSemesterCourses: () => Course[];
   getCurrentGPA: () => number;
   getCGPA: () => number;
   getCGPADetails: (courses: Course[], prior: { cgpa: number, units: number }) => CGPACalculationResult;
   getCarryovers: () => Course[];
+  refreshCourses: () => Promise<void>;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -20,53 +23,144 @@ interface CourseProviderProps {
   children: ReactNode;
 }
 
+function toGrade(grade: string | null): Grade {
+  const validGrades: Grade[] = ['A', 'B', 'C', 'D', 'E', 'F'];
+  if (grade && validGrades.includes(grade as Grade)) {
+    return grade as Grade;
+  }
+  return 'F';
+}
+
 export function CourseProvider({ children }: CourseProviderProps) {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { session, user } = useAuth();
+
+  const fetchCourses = async () => {
+    if (!session?.user) {
+      setCourses([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching courses:', error);
+    } else {
+      setCourses(data?.map(c => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        units: c.units,
+        score: Number(c.score) || 0,
+        grade: toGrade(c.grade),
+        level: c.level,
+        semester: c.semester,
+      })) || []);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const data = getStoredData();
-    setCourses(data.courses);
-  }, []);
+    fetchCourses();
+  }, [session?.user?.id]);
 
-  const addCourse = (course: Omit<Course, 'id' | 'grade'>) => {
+  const addCourse = async (course: Omit<Course, 'id' | 'grade'>) => {
+    if (!session?.user) return;
+
     const grade = calculateGrade(course.score);
-    const newCourse: Course = {
-      ...course,
-      id: crypto.randomUUID(),
-      grade,
-    };
-    const updated = [...courses, newCourse];
-    setCourses(updated);
-    saveCourses(updated);
+    
+    const { data, error } = await supabase
+      .from('courses')
+      .insert({
+        user_id: session.user.id,
+        code: course.code,
+        title: course.title,
+        units: course.units,
+        score: course.score,
+        grade,
+        level: course.level,
+        semester: course.semester,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding course:', error);
+      throw error;
+    }
+
+    if (data) {
+      setCourses(prev => [{
+        id: data.id,
+        code: data.code,
+        title: data.title,
+        units: data.units,
+        score: Number(data.score),
+        grade: toGrade(data.grade),
+        level: data.level,
+        semester: data.semester,
+      }, ...prev]);
+    }
   };
 
-  const updateCourse = (id: string, updates: Partial<Course>) => {
-    const updated = courses.map(course => {
+  const updateCourse = async (id: string, updates: Partial<Course>) => {
+    if (!session?.user) return;
+
+    const updateData: Record<string, unknown> = { ...updates };
+    if (updates.score !== undefined) {
+      updateData.grade = calculateGrade(updates.score);
+    }
+
+    const { error } = await supabase
+      .from('courses')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      console.error('Error updating course:', error);
+      throw error;
+    }
+
+    setCourses(prev => prev.map(course => {
       if (course.id === id) {
-        const updatedCourse = { ...course, ...updates };
+        const updated = { ...course, ...updates };
         if (updates.score !== undefined) {
-          updatedCourse.grade = calculateGrade(updates.score);
+          updated.grade = calculateGrade(updates.score);
         }
-        return updatedCourse;
+        return updated;
       }
       return course;
-    });
-    setCourses(updated);
-    saveCourses(updated);
+    }));
   };
 
-  const deleteCourse = (id: string) => {
-    const updated = courses.filter(course => course.id !== id);
-    setCourses(updated);
-    saveCourses(updated);
+  const deleteCourse = async (id: string) => {
+    if (!session?.user) return;
+
+    const { error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      console.error('Error deleting course:', error);
+      throw error;
+    }
+
+    setCourses(prev => prev.filter(course => course.id !== id));
   };
 
   const getCurrentSemesterCourses = () => {
-    const data = getStoredData();
-    const user = data.user;
     if (!user) return [];
     return courses.filter(
-      course => course.level === user.currentLevel && course.semester === user.currentSemester
+      course => course.level === user.level && course.semester === user.semester
     );
   };
 
@@ -78,18 +172,24 @@ export function CourseProvider({ children }: CourseProviderProps) {
     return calculateGPA(courses);
   };
 
-  const getCGPADetails = (courses: Course[], prior: { cgpa: number, units: number }) => {
-    return calculateCGPA(courses, prior);
+  const getCGPADetails = (courseList: Course[], prior: { cgpa: number, units: number }) => {
+    return calculateCGPA(courseList, prior);
   };
 
   const getCarryovers = () => {
     return getCarryoverCourses(courses);
   };
 
+  const refreshCourses = async () => {
+    setLoading(true);
+    await fetchCourses();
+  };
+
   return (
     <CourseContext.Provider
       value={{
         courses,
+        loading,
         addCourse,
         updateCourse,
         deleteCourse,
@@ -98,6 +198,7 @@ export function CourseProvider({ children }: CourseProviderProps) {
         getCGPA,
         getCGPADetails,
         getCarryovers,
+        refreshCourses,
       }}
     >
       {children}
@@ -111,13 +212,4 @@ export function useCourses() {
     throw new Error('useCourses must be used within CourseProvider');
   }
   return context;
-}
-
-function calculateGrade(score: number) {
-  if (score >= 70) return 'A';
-  if (score >= 60) return 'B';
-  if (score >= 50) return 'C';
-  if (score >= 45) return 'D';
-  if (score >= 40) return 'E';
-  return 'F';
 }
