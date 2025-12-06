@@ -322,25 +322,41 @@ export default function Settings() {
           </Card>
         )}
 
-        {/* Privacy Policy */}
+        {/* Legal & Info */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Privacy Policy</h2>
+            <h2 className="text-lg font-semibold text-foreground">Legal & Info</h2>
           </div>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Data Storage:</strong> Your academic data is securely stored in the cloud, synced across your devices. Your data is encrypted and protected.
-            </p>
-            <p>
-              <strong className="text-foreground">AI Chat:</strong> The AI assistant helps with academic guidance. Conversations are processed securely and not shared with third parties.
-            </p>
-            <p>
-              <strong className="text-foreground">Your Privacy:</strong> Your academic records and personal information remain completely private and under your control.
-            </p>
-            <p>
-              <strong className="text-foreground">Contact:</strong> For questions, contact noskytech1@gmail.com
-            </p>
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate('/legal/privacy')}
+            >
+              Privacy Policy
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate('/legal/terms')}
+            >
+              Terms of Use
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate('/legal/disclaimer')}
+            >
+              Disclaimer
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate('/legal/about')}
+            >
+              About Gradex
+            </Button>
           </div>
         </Card>
 
