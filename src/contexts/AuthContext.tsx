@@ -17,7 +17,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
-  signup: (name: string, email: string, password: string, level: string, semester: string) => Promise<{ error: string | null }>;
+  signup: (name: string, email: string, password: string, level: string, semester: string, department?: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signup = async (name: string, email: string, password: string, level: string, semester: string) => {
+  const signup = async (name: string, email: string, password: string, level: string, semester: string, department?: string) => {
     const redirectUrl = `${window.location.origin}/dashboard`;
     
     const { error } = await supabase.auth.signUp({
@@ -103,6 +103,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           name,
           level: level + 'L',
           semester: semester === '1' ? '1st' : '2nd',
+          department: department || '',
         },
       },
     });
