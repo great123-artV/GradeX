@@ -12,6 +12,9 @@ import Courses from "./pages/Courses";
 import AddCourse from "./pages/AddCourse";
 import AIChat from "./pages/AIChat";
 import Settings from "./pages/Settings";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -38,6 +41,28 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return session ? <>{children}</> : <Navigate to="/auth" replace />;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { session, user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!session) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  
+  if (!user?.isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   const { session, loading } = useAuth();
 
@@ -58,6 +83,9 @@ function AppRoutes() {
       <Route path="/edit-course/:id" element={<ProtectedRoute><AddCourse /></ProtectedRoute>} />
       <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/legal/:page" element={<Legal />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
