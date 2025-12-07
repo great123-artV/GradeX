@@ -43,13 +43,21 @@ All colors MUST be HSL.
 
     --ai-glow: 215 100% 50%;
     --ai-glow-soft: 215 100% 95%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(215 100% 37%), hsl(215 100% 50%));
-    --gradient-ai: linear-gradient(135deg, hsl(215 100% 50%), hsl(220 100% 60%));
-    
+
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(215 100% 37%),
+      hsl(215 100% 50%)
+    );
+    --gradient-ai: linear-gradient(
+      135deg,
+      hsl(215 100% 50%),
+      hsl(220 100% 60%)
+    );
+
     --shadow-elevated: 0 10px 40px -10px hsl(215 100% 37% / 0.2);
     --shadow-glow: 0 0 30px hsl(215 100% 50% / 0.3);
-    
+
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -87,10 +95,18 @@ All colors MUST be HSL.
 
     --ai-glow: 215 100% 60%;
     --ai-glow-soft: 215 100% 20%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(215 100% 45%), hsl(215 100% 55%));
-    --gradient-ai: linear-gradient(135deg, hsl(215 100% 55%), hsl(220 100% 65%));
-    
+
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(215 100% 45%),
+      hsl(215 100% 55%)
+    );
+    --gradient-ai: linear-gradient(
+      135deg,
+      hsl(215 100% 55%),
+      hsl(220 100% 65%)
+    );
+
     --shadow-elevated: 0 10px 40px -10px hsl(215 100% 50% / 0.3);
     --shadow-glow: 0 0 40px hsl(215 100% 60% / 0.4);
   }
@@ -110,5 +126,19 @@ All colors MUST be HSL.
   .bg-clip-text {
     -webkit-background-clip: text;
     background-clip: text;
+  }
+
+  .cursor-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
 }

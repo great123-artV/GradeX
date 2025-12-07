@@ -27,6 +27,7 @@ export default function AIChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const hasInitialized = useRef(false);
 
   const cgpa = getCGPA();
@@ -43,6 +44,9 @@ export default function AIChat() {
   };
 
   useEffect(() => {
+    // Auto-focus input on mount
+    inputRef.current?.focus();
+
     if (!hasInitialized.current && messages.length === 0) {
       hasInitialized.current = true;
       const welcomeContent = cgpa > 0 
@@ -76,10 +80,20 @@ export default function AIChat() {
     setInput('');
     setIsLoading(true);
 
-    let assistantContent = '';
     const assistantId = crypto.randomUUID();
+    
+    // Immediate feedback with blinking cursor
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }]);
 
     try {
+      // 1.5s artificial delay for "thinking"
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gradex-chat`, {
         method: 'POST',
         headers: {
@@ -102,49 +116,57 @@ export default function AIChat() {
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let fullContent = '';
 
+      // Start reading stream
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            const content = data.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === 'assistant' && last.id === assistantId) {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
-                }
-                return [...prev, { id: assistantId, role: 'assistant', content: assistantContent, timestamp: new Date() }];
-              });
-            }
-          } catch {}
+          for (const line of lines) {
+            if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                fullContent += content;
+              }
+            } catch {}
+          }
         }
+        
+        if (done) break;
       }
+
+      // Typewriter effect
+      let currentIndex = 0;
+      const typeInterval = setInterval(() => {
+        if (currentIndex < fullContent.length) {
+          const displayedContent = fullContent.slice(0, currentIndex + 1);
+          setMessages(prev => prev.map(m => 
+            m.id === assistantId ? { ...m, content: displayedContent } : m
+          ));
+          currentIndex++;
+        } else {
+          clearInterval(typeInterval);
+          setIsLoading(false);
+        }
+      }, 20); // Adjust speed as needed (20ms per char)
+
     } catch (error) {
+      setIsLoading(false);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to get AI response',
         variant: 'destructive',
       });
-      if (!assistantContent) {
-        setMessages(prev => [...prev, {
-          id: assistantId,
-          role: 'assistant',
-          content: "I'm having trouble connecting right now. Please try again in a moment.",
-          timestamp: new Date(),
-        }]);
-      }
-    } finally {
-      setIsLoading(false);
+      setMessages(prev => prev.map(m => 
+        m.id === assistantId ? { ...m, content: "I'm having trouble connecting right now. Please try again in a moment." } : m
+      ));
     }
   };
 
@@ -181,10 +203,15 @@ export default function AIChat() {
             <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
               <div className="flex flex-col gap-2 max-w-[85%]">
                 <Card className={`p-4 ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {message.content}
+                    {isLoading && message.role === 'assistant' && message.id === messages[messages.length - 1].id && message.content.length === 0 && (
+                      <span className="inline-block w-[2px] h-5 ml-1 bg-foreground align-middle cursor-blink" />
+                    )}
+                  </p>
                   <p className="text-xs opacity-70 mt-2">{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </Card>
-                {message.role === 'assistant' && (
+                {message.role === 'assistant' && message.content.length > 0 && (
                   <Button variant="ghost" size="sm" className="self-end" onClick={() => { saveResponse(message.content); toast({ title: 'Saved!', description: 'Response saved.' }); }}>
                     <Bookmark className="w-4 h-4 mr-1" /> Save
                   </Button>
@@ -207,6 +234,7 @@ export default function AIChat() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex gap-2">
             <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
