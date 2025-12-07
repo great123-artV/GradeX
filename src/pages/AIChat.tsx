@@ -199,33 +199,33 @@ export default function AIChat() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-              <div className="flex flex-col gap-2 max-w-[85%]">
-                <Card className={`p-4 ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {message.content}
-                    {isLoading && message.role === 'assistant' && message.id === messages[messages.length - 1].id && message.content.length === 0 && (
-                      <span className="inline-block w-[2px] h-5 ml-1 bg-foreground align-middle cursor-blink" />
+          {messages.map((message) => {
+            const isLastAssistant = message.role === 'assistant' && message.id === messages[messages.length - 1]?.id;
+            const showTypingBar = isLoading && isLastAssistant;
+            
+            return (
+              <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+                <div className="flex flex-col gap-2 max-w-[85%]">
+                  <Card className={`p-4 ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                      {showTypingBar && (
+                        <span className="inline-block w-[2px] h-4 ml-0.5 bg-primary align-middle animate-pulse" style={{ animationDuration: '0.5s' }}>|</span>
+                      )}
+                    </p>
+                    {!showTypingBar && (
+                      <p className="text-xs opacity-70 mt-2">{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     )}
-                  </p>
-                  <p className="text-xs opacity-70 mt-2">{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </Card>
-                {message.role === 'assistant' && message.content.length > 0 && (
-                  <Button variant="ghost" size="sm" className="self-end" onClick={() => { saveResponse(message.content); toast({ title: 'Saved!', description: 'Response saved.' }); }}>
-                    <Bookmark className="w-4 h-4 mr-1" /> Save
-                  </Button>
-                )}
+                  </Card>
+                  {message.role === 'assistant' && message.content.length > 0 && !isLoading && (
+                    <Button variant="ghost" size="sm" className="self-end" onClick={() => { saveResponse(message.content); toast({ title: 'Saved!', description: 'Response saved.' }); }}>
+                      <Bookmark className="w-4 h-4 mr-1" /> Save
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-          {isLoading && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex justify-start">
-              <Card className="p-4 bg-card">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              </Card>
-            </div>
-          )}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </main>
