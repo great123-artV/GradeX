@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SavedResponses, saveResponse } from '@/components/SavedResponses';
 import { StudyTimer } from '@/components/StudyTimer';
 import { supabase } from '@/integrations/supabase/client';
+import { playTypingStartSound, playTypingEndSound } from '@/lib/sounds';
 
 interface Message {
   id: string;
@@ -142,7 +143,9 @@ export default function AIChat() {
         if (done) break;
       }
 
-      // Typewriter effect
+      // Play start sound and begin typewriter effect
+      playTypingStartSound();
+      
       let currentIndex = 0;
       const typeInterval = setInterval(() => {
         if (currentIndex < fullContent.length) {
@@ -154,8 +157,9 @@ export default function AIChat() {
         } else {
           clearInterval(typeInterval);
           setIsLoading(false);
+          playTypingEndSound();
         }
-      }, 20); // Adjust speed as needed (20ms per char)
+      }, 20);
 
     } catch (error) {
       setIsLoading(false);
