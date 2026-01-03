@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Eye, EyeOff, GraduationCap, BookOpen, Calendar, Loader2, Building } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, BookOpen, Calendar, Loader2, Building, School } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUniversityData } from '@/hooks/useUniversityData';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,7 +20,9 @@ export default function Auth() {
     email: '',
     password: '',
     confirmPassword: '',
-    department: '',
+    universityId: '',
+    facultyId: '',
+    departmentId: '',
     currentLevel: '100',
     currentSemester: '1',
   });
@@ -27,6 +30,31 @@ export default function Auth() {
   const { login, signup, session, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  const { 
+    universities, 
+    faculties, 
+    departments, 
+    loadFaculties, 
+    loadDepartments,
+    isLoading: dataLoading 
+  } = useUniversityData();
+
+  // Load faculties when university changes
+  useEffect(() => {
+    if (formData.universityId) {
+      loadFaculties(formData.universityId);
+      setFormData(prev => ({ ...prev, facultyId: '', departmentId: '' }));
+    }
+  }, [formData.universityId]);
+
+  // Load departments when faculty changes
+  useEffect(() => {
+    if (formData.facultyId) {
+      loadDepartments(formData.facultyId);
+      setFormData(prev => ({ ...prev, departmentId: '' }));
+    }
+  }, [formData.facultyId]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -73,7 +101,9 @@ export default function Auth() {
           formData.password, 
           formData.currentLevel,
           formData.currentSemester,
-          formData.department
+          formData.universityId,
+          formData.facultyId,
+          formData.departmentId
         );
         
         if (error) {
@@ -186,17 +216,72 @@ export default function Auth() {
               </div>
 
               <div>
-                <Label htmlFor="department" className="flex items-center gap-2">
-                  <Building className="w-4 h-4 text-primary" />
-                  Department
+                <Label htmlFor="university" className="flex items-center gap-2">
+                  <School className="w-4 h-4 text-primary" />
+                  University *
                 </Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="e.g., Computer Science"
-                  disabled={isLoading}
-                />
+                <Select 
+                  value={formData.universityId} 
+                  onValueChange={(value) => setFormData({ ...formData, universityId: value })}
+                  disabled={isLoading || dataLoading}
+                >
+                  <SelectTrigger id="university">
+                    <SelectValue placeholder="Select university" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {universities.map((uni) => (
+                      <SelectItem key={uni.id} value={uni.id}>
+                        {uni.short_name || uni.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="faculty" className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-primary" />
+                  Faculty *
+                </Label>
+                <Select 
+                  value={formData.facultyId} 
+                  onValueChange={(value) => setFormData({ ...formData, facultyId: value })}
+                  disabled={isLoading || !formData.universityId || dataLoading}
+                >
+                  <SelectTrigger id="faculty">
+                    <SelectValue placeholder={formData.universityId ? "Select faculty" : "Select university first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {faculties.map((fac) => (
+                      <SelectItem key={fac.id} value={fac.id}>
+                        {fac.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="department" className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  Department *
+                </Label>
+                <Select 
+                  value={formData.departmentId} 
+                  onValueChange={(value) => setFormData({ ...formData, departmentId: value })}
+                  disabled={isLoading || !formData.facultyId || dataLoading}
+                >
+                  <SelectTrigger id="department">
+                    <SelectValue placeholder={formData.facultyId ? "Select department" : "Select faculty first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
