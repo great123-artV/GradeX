@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { autoLoadCourses } from '@/hooks/useCourseAutoLoad';
 
 export interface UserProfile {
   id: string;
@@ -10,6 +11,9 @@ export interface UserProfile {
   semester: string;
   about?: string;
   isAdmin?: boolean;
+  universityId?: string;
+  facultyId?: string;
+  departmentId?: string;
 }
 
 interface AuthContextType {
@@ -57,6 +61,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         semester: profile.semester || '1st',
         about: profile.about || '',
         isAdmin: !!roleData,
+        universityId: profile.university_id || undefined,
+        facultyId: profile.faculty_id || undefined,
+        departmentId: profile.department_id || undefined,
       });
     }
   };
@@ -94,15 +101,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signup = async (name: string, email: string, password: string, level: string, semester: string, universityId?: string, facultyId?: string, departmentId?: string) => {
     const redirectUrl = `${window.location.origin}/dashboard`;
     
-    const { error } = await supabase.auth.signUp({
+    const formattedLevel = level + 'L';
+    const formattedSemester = semester === '1' ? '1st' : '2nd';
+    
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
           name,
-          level: level + 'L',
-          semester: semester === '1' ? '1st' : '2nd',
+          level: formattedLevel,
+          semester: formattedSemester,
           university_id: universityId || '',
           faculty_id: facultyId || '',
           department_id: departmentId || '',
@@ -115,6 +125,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return { error: 'This email is already registered. Please login instead.' };
       }
       return { error: error.message };
+    }
+
+    // Auto-load courses after successful signup if department is selected
+    if (data.user && departmentId) {
+      setTimeout(async () => {
+        const result = await autoLoadCourses({
+          userId: data.user!.id,
+          departmentId,
+          level: formattedLevel,
+          semester: formattedSemester,
+        });
+        if (result.success && result.count > 0) {
+          console.log(`Auto-loaded ${result.count} courses for new user`);
+        }
+      }, 500); // Small delay to ensure profile is created
     }
 
     return { error: null };
