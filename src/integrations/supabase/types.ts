@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      course_catalog: {
+        Row: {
+          course_code: string
+          created_at: string | null
+          department_id: string
+          id: string
+          level: string
+          semester: string
+          title: string
+          unit_load: number
+        }
+        Insert: {
+          course_code: string
+          created_at?: string | null
+          department_id: string
+          id?: string
+          level: string
+          semester: string
+          title: string
+          unit_load?: number
+        }
+        Update: {
+          course_code?: string
+          created_at?: string | null
+          department_id?: string
+          id?: string
+          level?: string
+          semester?: string
+          title?: string
+          unit_load?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_catalog_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           code: string
@@ -56,36 +97,190 @@ export type Database = {
         }
         Relationships: []
       }
+      departments: {
+        Row: {
+          created_at: string | null
+          faculty_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          faculty_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          faculty_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_faculty_id_fkey"
+            columns: ["faculty_id"]
+            isOneToOne: false
+            referencedRelation: "faculties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faculties: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          university_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          university_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          university_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faculties_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           about: string | null
           created_at: string | null
+          department_id: string | null
           email: string | null
+          faculty_id: string | null
           id: string
           level: string | null
           name: string
           semester: string | null
+          university_id: string | null
           updated_at: string | null
         }
         Insert: {
           about?: string | null
           created_at?: string | null
+          department_id?: string | null
           email?: string | null
+          faculty_id?: string | null
           id: string
           level?: string | null
           name: string
           semester?: string | null
+          university_id?: string | null
           updated_at?: string | null
         }
         Update: {
           about?: string | null
           created_at?: string | null
+          department_id?: string | null
           email?: string | null
+          faculty_id?: string | null
           id?: string
           level?: string | null
           name?: string
           semester?: string | null
+          university_id?: string | null
           updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_faculty_id_fkey"
+            columns: ["faculty_id"]
+            isOneToOne: false
+            referencedRelation: "faculties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_courses: {
+        Row: {
+          course_catalog_id: string
+          created_at: string | null
+          grade: string | null
+          id: string
+          is_carryover: boolean | null
+          original_semester: string | null
+          score: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          course_catalog_id: string
+          created_at?: string | null
+          grade?: string | null
+          id?: string
+          is_carryover?: boolean | null
+          original_semester?: string | null
+          score?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          course_catalog_id?: string
+          created_at?: string | null
+          grade?: string | null
+          id?: string
+          is_carryover?: boolean | null
+          original_semester?: string | null
+          score?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_courses_course_catalog_id_fkey"
+            columns: ["course_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "course_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universities: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          short_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          short_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          short_name?: string | null
         }
         Relationships: []
       }
